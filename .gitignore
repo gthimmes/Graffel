@@ -1,0 +1,27 @@
+# Node
+node_modules/
+*.log
+
+# Vite / build output — wwwroot is filled by `vite build`; keep the dir via .gitkeep,
+# ignore the built artifacts.
+src/Graffel.Web/dist/
+src/Graffel.Api/wwwroot/*
+!src/Graffel.Api/wwwroot/.gitkeep
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Tests
+src/Graffel.Web/playwright-report/
+src/Graffel.Web/test-results/
+src/Graffel.Web/blob-report/
+src/Graffel.Web/.vite/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

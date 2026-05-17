@@ -1,0 +1,213 @@
+:root {
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-border: #d8dbe1;
+  --color-text: #1f2330;
+  --color-text-muted: #5b6271;
+  --color-accent: #2563eb;
+  --color-accent-soft: #dbeafe;
+  --color-shape-service: #dcfce7;
+  --color-shape-service-border: #16a34a;
+  --color-shape-database: #fef3c7;
+  --color-shape-database-border: #d97706;
+  --color-shape-queue: #ede9fe;
+  --color-shape-queue-border: #7c3aed;
+  --color-shape-boundary: rgba(96, 165, 250, 0.08);
+  --color-shape-boundary-border: #60a5fa;
+  --color-shape-generic: #ffffff;
+  --color-shape-generic-border: #94a3b8;
+  --shadow-toolbar: 0 1px 0 rgba(0, 0, 0, 0.05);
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.graffel-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.graffel-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.graffel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-toolbar);
+  z-index: 10;
+}
+
+.graffel-toolbar .brand {
+  font-weight: 600;
+  margin-right: 12px;
+  letter-spacing: 0.2px;
+}
+
+.graffel-toolbar .title-input {
+  flex: 0 0 280px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--color-text);
+}
+
+.graffel-toolbar .title-input:hover { border-color: var(--color-border); }
+.graffel-toolbar .title-input:focus { border-color: var(--color-accent); outline: none; background: var(--color-surface); }
+
+.graffel-toolbar .spacer { flex: 1 1 auto; }
+
+.graffel-toolbar button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.graffel-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.graffel-toolbar button:active { background: var(--color-accent-soft); }
+
+.graffel-palette {
+  flex: 0 0 200px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: 12px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-panel);
+}
+
+.graffel-palette h3 {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.graffel-palette .palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: left;
+  cursor: grab;
+  color: var(--color-text);
+}
+
+.graffel-palette .palette-item:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.graffel-palette .palette-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  flex: 0 0 14px;
+}
+
+.graffel-canvas-host {
+  flex: 1 1 auto;
+  position: relative;
+  background: var(--color-bg);
+}
+
+/* Shape nodes */
+.graffel-shape {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--color-shape-generic);
+  border: 1.5px solid var(--color-shape-generic-border);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  color: var(--color-text);
+  cursor: default;
+  user-select: none;
+}
+
+.graffel-shape.service  { background: var(--color-shape-service);  border-color: var(--color-shape-service-border); }
+.graffel-shape.database { background: var(--color-shape-database); border-color: var(--color-shape-database-border); border-radius: 20px / 8px; }
+.graffel-shape.queue    { background: var(--color-shape-queue);    border-color: var(--color-shape-queue-border); }
+.graffel-shape.ellipse  { border-radius: 50%; }
+.graffel-shape.diamond  { transform: rotate(45deg); }
+.graffel-shape.diamond .graffel-shape-label { transform: rotate(-45deg); }
+.graffel-shape.text     { background: transparent; border-color: transparent; }
+.graffel-shape.boundary {
+  background: var(--color-shape-boundary);
+  border-color: var(--color-shape-boundary-border);
+  border-style: dashed;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-shape-boundary-border);
+}
+
+.graffel-shape-label {
+  pointer-events: none;
+  word-break: break-word;
+}
+
+.graffel-shape-label-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font: inherit;
+  outline: none;
+}
+
+/* React Flow overrides */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+  opacity: 1;
+}
