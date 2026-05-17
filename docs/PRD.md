@@ -120,8 +120,55 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 
 ## Phased roadmap (now / next / later)
 
-- **Now (high confidence):** v1 canvas MVP — single-user, localStorage + file download/upload, PNG/SVG export. ~4–6 eng weeks.
-- **Next (medium confidence):** v2 — accounts, Google Drive save/open, share-by-link view-only. ~3–4 weeks. Gate: v1 shows engagement signal.
-- **Later (low confidence on timing):** v3 — realtime multiplayer. ~6–10 weeks. Gate: v2 has a user base that asks for it.
+- **Shipped:** v1.0 canvas MVP — single-user, localStorage + file download/upload, PNG/SVG export, palette, connectors.
+- **In progress:** v1.1 Inspector — right-side property panel for node + edge styling, resize, edge geometry type switch.
+- **Next:** v1.2 connector geometry — draggable waypoints for explicit corner/turn control.
+- **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
+- **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
 
 Not a commitment with dates. Now/next/later, not Q3/Q4/Q1.
+
+---
+
+## v1.1 — Inspector (current)
+
+**Why this slice.** v1.0 ships a usable canvas but offers no per-element control. The PRD's solution sketch (§6) named a contextual property panel; we deferred to ship faster. v1.1 closes that gap.
+
+**Scope (a single Inspector panel on the right edge, selection-driven):**
+
+When **one node** is selected:
+- Resize handles on the node itself (8 handles: corners + edge midpoints)
+- Label (text input in the inspector, alternative to in-canvas double-click)
+- Text alignment: horizontal (left/center/right) × vertical (top/middle/bottom)
+- Font family (fixed list of ~6 web-safe families for v1.1; arbitrary fonts later)
+- Font size, weight (regular/medium/bold), color
+- Fill color, border color
+
+When **one edge** is selected:
+- Edge type: straight / orthogonal / curved
+- Label
+- Stroke color, stroke width
+
+When **nothing or multi-selection**: panel shows an empty/hint state.
+
+**Decisions resolved up front:**
+- Fonts: fixed web-safe list (system-ui, Inter, Roboto, Georgia, Menlo, Times) — not arbitrary loaders. Reason: avoids font-loading complexity and licensing in v1; trivial to swap to Google Fonts later.
+- Resize handles: all 8 (corners + edge midpoints). Reason: matches user expectation; cost is the same.
+- Color picker: small custom swatch grid (8 presets per slot) + native `<input type="color">` for arbitrary. Reason: presets cover 90% of cases, fallback covers the rest.
+- Schema impact: none. New fields live in `data.style` (open object per ADR-0002); `edge.type` already in schema.
+
+**Goals (v1.1):**
+- Time-to-styled-shape: under 5 seconds from selection to a font/color change visible on canvas.
+- Resize round-trip: drag a handle, release, value persists across reload.
+- Edge type switch: change reflects on canvas immediately, no full re-render flash.
+
+**Non-goals for v1.1:**
+- Arbitrary font loaders (Google Fonts, custom upload)
+- Per-character text formatting (bold one word) — text styling is shape-wide
+- Edge waypoints / explicit corner control — that's v1.2
+- Grouping, layers, z-order controls
+- Snap-to-other-shape alignment
+
+**Hand-offs:**
+- Engineer: build per TDD discipline (failing test first); add Playwright coverage for inspector flows.
+- QA: three new golden flows — select-node-and-change-font, resize-persists-reload, switch-edge-to-curved.

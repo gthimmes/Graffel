@@ -3,6 +3,7 @@ import '@xyflow/react/dist/style.css'
 import { DiagramCanvas } from './canvas/DiagramCanvas'
 import { Palette } from './ui/Palette'
 import { Toolbar } from './ui/Toolbar'
+import { Inspector } from './ui/Inspector'
 import './App.css'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
         <div className="graffel-body">
           <Palette />
           <DiagramCanvas />
+          <Inspector />
         </div>
       </div>
     </ReactFlowProvider>

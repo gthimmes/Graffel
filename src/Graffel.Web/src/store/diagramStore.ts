@@ -44,8 +44,12 @@ interface DiagramState {
 
   addNode: (type: NodeType, position: { x: number; y: number }) => string
   updateNodePosition: (id: string, position: { x: number; y: number }) => void
+  updateNodeSize: (id: string, size: { w: number; h: number }) => void
   updateNodeLabel: (id: string, label: string) => void
+  updateNodeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeLabel: (id: string, label: string) => void
+  updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
+  updateEdgeType: (id: string, type: EdgeType) => void
   addEdge: (
     source: string,
     target: string,
@@ -97,10 +101,26 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
     }))
   },
 
+  updateNodeSize(id, size) {
+    set((s) => ({
+      nodes: s.nodes.map((n) => (n.id === id ? { ...n, size: { ...size } } : n)),
+    }))
+  },
+
   updateNodeLabel(id, label) {
     set((s) => ({
       nodes: s.nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, label } } : n,
+      ),
+    }))
+  },
+
+  updateNodeStyle(id, patch) {
+    set((s) => ({
+      nodes: s.nodes.map((n) =>
+        n.id === id
+          ? { ...n, data: { ...n.data, style: { ...(n.data.style ?? {}), ...patch } } }
+          : n,
       ),
     }))
   },
@@ -110,6 +130,22 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
       edges: s.edges.map((e) =>
         e.id === id ? { ...e, data: { ...e.data, label } } : e,
       ),
+    }))
+  },
+
+  updateEdgeStyle(id, patch) {
+    set((s) => ({
+      edges: s.edges.map((e) =>
+        e.id === id
+          ? { ...e, data: { ...e.data, style: { ...(e.data.style ?? {}), ...patch } } }
+          : e,
+      ),
+    }))
+  },
+
+  updateEdgeType(id, type) {
+    set((s) => ({
+      edges: s.edges.map((e) => (e.id === id ? { ...e, type } : e)),
     }))
   },
 

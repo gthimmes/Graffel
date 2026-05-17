@@ -195,6 +195,151 @@ html, body, #root {
   outline: none;
 }
 
+/* Inspector */
+.graffel-inspector {
+  flex: 0 0 260px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  padding: 12px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-panel);
+  font-size: 12px;
+}
+
+.graffel-inspector h3 {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.inspector-empty .hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.inspector-group {
+  border: none;
+  padding: 0 0 12px;
+  margin: 0 0 12px;
+  border-bottom: 1px dashed var(--color-border);
+}
+.inspector-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.inspector-group > legend {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.inspector-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.inspector-field-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.inspector-field input[type="text"],
+.inspector-field input[type="number"],
+.inspector-field select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.inspector-field input:focus,
+.inspector-field select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.inspector-row {
+  display: flex;
+  gap: 8px;
+}
+.inspector-row > .inspector-field { flex: 1 1 50%; }
+
+/* Segmented control */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.segmented-option {
+  flex: 1;
+  padding: 4px 8px;
+  border: none;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--color-text);
+  border-right: 1px solid var(--color-border);
+}
+.segmented-option:last-child { border-right: none; }
+.segmented-option:hover { background: var(--color-accent-soft); }
+.segmented-option.is-selected {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Color picker */
+.color-picker { display: flex; align-items: center; gap: 6px; }
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 16px);
+  gap: 4px;
+}
+.color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  padding: 0;
+  cursor: pointer;
+}
+.color-swatch.is-selected { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.color-input {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Node resize handles */
+.graffel-resize-handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--color-accent) !important;
+  border: 1.5px solid var(--color-surface) !important;
+  border-radius: 2px !important;
+}
+.graffel-resize-line {
+  border-color: var(--color-accent) !important;
+}
+
 /* React Flow overrides */
 .react-flow__handle {
   width: 10px;

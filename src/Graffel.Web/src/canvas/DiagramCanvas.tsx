@@ -5,8 +5,10 @@ import {
   ReactFlow,
   useReactFlow,
   type Connection,
+  type EdgeChange,
   type NodeChange,
   type OnConnect,
+  type OnEdgesChange,
   type OnNodesChange,
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -74,6 +76,21 @@ export function DiagramCanvas() {
     }
   }, [updateNodePosition, selectNodes, removeSelection])
 
+  const onEdgesChange: OnEdgesChange = useCallback((changes) => {
+    for (const change of changes as EdgeChange[]) {
+      if (change.type === 'select') {
+        const current = useDiagramStore.getState().selectedEdgeIds
+        const next = change.selected
+          ? Array.from(new Set([...current, change.id]))
+          : current.filter((id) => id !== change.id)
+        selectEdges(next)
+      } else if (change.type === 'remove') {
+        selectEdges([change.id])
+        removeSelection()
+      }
+    }
+  }, [selectEdges, removeSelection])
+
   const onConnect: OnConnect = useCallback((connection: Connection) => {
     const { source, target, sourceHandle, targetHandle } = connection
     if (!source || !target) return
@@ -140,6 +157,7 @@ export function DiagramCanvas() {
         edges={rfEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
         proOptions={{ hideAttribution: true }}
