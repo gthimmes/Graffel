@@ -123,8 +123,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v1.0 canvas MVP — single-user, localStorage + file download/upload, PNG/SVG export, palette, connectors.
 - **Shipped:** v1.1 Inspector — right-side property panel for node + edge styling, resize, edge geometry type switch.
 - **Shipped:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
-- **In progress:** v1.3 keyboard + history — undo/redo, quick-insert R/E/D/T, duplicate, nudge.
-- **Next:** v1.4 command palette — `/` opens fuzzy-searchable command palette. After this, v1 PRD is complete.
+- **Shipped:** v1.3 keyboard + history — undo/redo, quick-insert R/E/D/T, duplicate, nudge, select-all.
+- **Shipped:** v1.4 command palette — `/`-opened fuzzy command palette covering every v1 action. **v1 PRD complete.**
+- **Next:** v2 — accounts + Google Drive save/open + share-by-link. Gate: v1 shows engagement signal.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
 

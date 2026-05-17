@@ -20,6 +20,7 @@ import {
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
+import { useUiStore } from '../ui/CommandPalette'
 import type { NodeType } from '../format/types'
 
 const nodeTypes = { shape: ShapeNode }
@@ -173,6 +174,13 @@ export function DiagramCanvas() {
       }
 
       if (inEditable) return
+
+      // Open command palette.
+      if (e.key === '/' && !mod && !e.altKey) {
+        e.preventDefault()
+        useUiStore.getState().openPalette()
+        return
+      }
 
       // Select all.
       if (mod && (e.key === 'a' || e.key === 'A')) {
