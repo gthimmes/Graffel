@@ -86,8 +86,9 @@ html, body, #root {
   cursor: pointer;
 }
 
-.graffel-toolbar button:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.graffel-toolbar button:active { background: var(--color-accent-soft); }
+.graffel-toolbar button:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+.graffel-toolbar button:active:not(:disabled) { background: var(--color-accent-soft); }
+.graffel-toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .graffel-palette {
   flex: 0 0 200px;

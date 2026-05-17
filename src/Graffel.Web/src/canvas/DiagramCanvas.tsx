@@ -36,7 +36,6 @@ export function DiagramCanvas() {
   const removeSelection = useDiagramStore((s) => s.removeSelection)
   const loadDocument = useDiagramStore((s) => s.loadDocument)
   const toDocument = useDiagramStore((s) => s.toDocument)
-  const setTitle = useDiagramStore((s) => s.setTitle)
 
   const selectedNodeIds = useDiagramStore((s) => s.selectedNodeIds)
   const selectedEdgeIds = useDiagramStore((s) => s.selectedEdgeIds)
@@ -56,8 +55,16 @@ export function DiagramCanvas() {
     [edges, selectedEdgeIds],
   )
 
+  const undo = useDiagramStore((s) => s.undo)
+  const redo = useDiagramStore((s) => s.redo)
+  const selectAll = useDiagramStore((s) => s.selectAll)
+  const duplicateNodes = useDiagramStore((s) => s.duplicateNodes)
+  const nudgeNodes = useDiagramStore((s) => s.nudgeNodes)
+
   const { screenToFlowPosition } = useReactFlow()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  // Track the latest cursor position in flow coordinates for keyboard quick-insert.
+  const lastCursorFlow = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 
   // Hydrate from localStorage on mount.
   useEffect(() => {
@@ -131,8 +138,16 @@ export function DiagramCanvas() {
     event.dataTransfer.dropEffect = 'move'
   }, [])
 
-  // Keyboard: Delete / Backspace removes selection; Escape clears selection.
+  // Track cursor in flow coordinates for keyboard quick-insert.
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    lastCursorFlow.current = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+  }, [screenToFlowPosition])
+
+  // Keyboard shortcuts.
   useEffect(() => {
+    const QUICK_INSERT: Record<string, NodeType> = {
+      r: 'rectangle', e: 'ellipse', d: 'diamond', t: 'text',
+    }
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       const inEditable =
@@ -140,26 +155,82 @@ export function DiagramCanvas() {
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable)
+      const mod = e.metaKey || e.ctrlKey
+
+      // Undo / Redo — works even when palette/inspector inputs are not focused.
+      if (mod && (e.key === 'z' || e.key === 'Z')) {
+        if (inEditable) return
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+        return
+      }
+      if (mod && (e.key === 'y' || e.key === 'Y')) {
+        if (inEditable) return
+        e.preventDefault()
+        redo()
+        return
+      }
+
       if (inEditable) return
+
+      // Select all.
+      if (mod && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        selectAll()
+        return
+      }
+
+      // Duplicate.
+      if (mod && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        const ids = useDiagramStore.getState().selectedNodeIds
+        if (ids.length > 0) duplicateNodes(ids)
+        return
+      }
+
+      // Delete / Escape.
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = useDiagramStore.getState()
         if (s.selectedNodeIds.length > 0 || s.selectedEdgeIds.length > 0) {
           e.preventDefault()
           removeSelection()
         }
-      } else if (e.key === 'Escape') {
+        return
+      }
+      if (e.key === 'Escape') {
         selectNodes([])
         selectEdges([])
-      } else if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
-        // command palette stub — focus the title for now (extension point)
-        const input = document.querySelector<HTMLInputElement>('.title-input')
-        input?.focus()
+        return
+      }
+
+      // Arrow nudge.
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const ids = useDiagramStore.getState().selectedNodeIds
+        if (ids.length === 0) return
+        const step = e.shiftKey ? 10 : 1
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
+        const dy = e.key === 'ArrowUp'   ? -step : e.key === 'ArrowDown'  ? step : 0
         e.preventDefault()
+        nudgeNodes(ids, { x: dx, y: dy })
+        return
+      }
+
+      // Quick-insert R / E / D / T at cursor flow position.
+      // (Note: Cmd+D is handled above as duplicate; bare 'd' inserts a diamond.)
+      const lower = e.key.toLowerCase()
+      if (!mod && !e.altKey && QUICK_INSERT[lower]) {
+        e.preventDefault()
+        useDiagramStore.getState().addNode(
+          QUICK_INSERT[lower] as NodeType,
+          { ...lastCursorFlow.current },
+        )
+        return
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [removeSelection, selectNodes, selectEdges, setTitle])
+  }, [removeSelection, selectNodes, selectEdges, undo, redo, selectAll, duplicateNodes, nudgeNodes])
 
   return (
     <div
@@ -168,6 +239,7 @@ export function DiagramCanvas() {
       data-testid="canvas-host"
       onDrop={onDrop}
       onDragOver={onDragOver}
+      onMouseMove={onMouseMove}
     >
       <ReactFlow
         nodes={rfNodes}

@@ -122,7 +122,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 
 - **Shipped:** v1.0 canvas MVP — single-user, localStorage + file download/upload, PNG/SVG export, palette, connectors.
 - **Shipped:** v1.1 Inspector — right-side property panel for node + edge styling, resize, edge geometry type switch.
-- **In progress:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
+- **Shipped:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
+- **In progress:** v1.3 keyboard + history — undo/redo, quick-insert R/E/D/T, duplicate, nudge.
+- **Next:** v1.4 command palette — `/` opens fuzzy-searchable command palette. After this, v1 PRD is complete.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
 
@@ -202,3 +204,57 @@ When **nothing or multi-selection**: panel shows an empty/hint state.
 **Hand-offs:**
 - Engineer: TDD on the waypoint store actions before any rendering; Playwright for drag interactions.
 - QA: cover insert-via-midpoint-drag, move-via-handle-drag, clear-via-inspector, and waypoint-survives-reload.
+
+---
+
+## v1.3 — Keyboard & history (current)
+
+**Why this slice.** v1.0–1.2 are mouse-driven. The original PRD §6 names a battery of keyboard ergonomics — undo/redo, quick-insert shape shortcuts, duplicate, arrow-nudge. Without these, a power user can't use Graffel productively.
+
+**Scope:**
+- **Undo / redo** via Cmd+Z and Cmd+Shift+Z (Ctrl on Windows). Snapshot-based history bounded to 50 entries. See [ADR-0005](./adr/0005-history-undo-redo.md). Toolbar shows ↶ Undo / ↷ Redo buttons with disabled state.
+- **Quick-insert** R / E / D / T → insert Rectangle / Ellipse / Diamond / Text at the current cursor position (canvas flow coords).
+- **Cmd+D** → duplicate current selection at +20px offset.
+- **Arrow keys** → nudge selected nodes 1px; **Shift+Arrow** nudges 10px.
+- **Cmd+A** → select all nodes + edges.
+
+**Non-goals for v1.3:**
+- Per-field undo granularity (whole-state snapshots only).
+- Multi-key chords (no leader-key combos like `g g`).
+- Touch-friendly equivalents.
+- Selection-state in undo history (PRD §3 goal is structural undo, not UX undo).
+
+**Goals:**
+- Undo restores the last structural change in under 100ms, including for waypoint moves and style changes.
+- Cmd+D + arrow nudge feels instant — no jank.
+- Drag-a-shape produces ONE undo entry, not 60 (coalescing).
+
+**Hand-offs:**
+- Engineer: history middleware first (TDD); then keyboard layer.
+- QA: cover undo-after-delete, redo-after-undo, quick-insert-at-cursor, duplicate, arrow-nudge.
+
+---
+
+## v1.4 — Command palette (next, then v1 done)
+
+**Why this slice.** The PRD §6 names a Linear-style command palette opened with `/`. This is the last v1 ergonomic gap. After v1.4 lands, v1 PRD is fully delivered.
+
+**Scope:**
+- **`/`** opens a centered modal with a search input and a results list.
+- **Arrow ↑/↓** navigates, **Enter** runs, **Esc** closes, click anywhere outside also closes.
+- **Commands cover the v1 surface:** Insert any shape, Set font family / size / weight, Set fill / border color, Switch edge type, Clear waypoints, Export PNG / SVG, Download .graffel, Open file, New, Undo, Redo.
+- **Fuzzy match:** simple substring scoring with token-prefix bonus. Good enough for v1; can swap in fzf-style later.
+- Each command has `id`, `label`, `keywords[]`, optional `shortcut` hint, `run()` function.
+
+**Non-goals for v1.4:**
+- Recent-commands history / pinning.
+- Command-aware argument prompts ("Set fill to ___" arguments).
+- Plugin-extensible command sources.
+
+**Goals:**
+- Cold open of palette to first character typed: under 100ms.
+- Insert-a-service-via-palette: under 5 seconds total.
+
+**Hand-offs:**
+- Engineer: command registry + fuzzy match first (TDD); then modal UI.
+- QA: cover `/` opens, type filters, Enter executes, Esc closes, and verify the executed command actually mutated the document.

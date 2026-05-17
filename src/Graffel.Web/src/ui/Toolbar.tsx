@@ -24,6 +24,11 @@ export function Toolbar() {
   const toDocument = useDiagramStore((s) => s.toDocument)
   const loadDocument = useDiagramStore((s) => s.loadDocument)
   const reset = useDiagramStore((s) => s.reset)
+  const undo = useDiagramStore((s) => s.undo)
+  const redo = useDiagramStore((s) => s.redo)
+  // canUndo/canRedo are functions; subscribe to the history slice directly to re-render.
+  const pastLen = useDiagramStore((s) => s._past.length)
+  const futureLen = useDiagramStore((s) => s._future.length)
   const fileInput = useRef<HTMLInputElement>(null)
 
   function safeFilename(base: string): string {
@@ -80,6 +85,20 @@ export function Toolbar() {
         aria-label="Diagram title"
       />
       <span className="spacer" />
+      <button
+        type="button"
+        onClick={undo}
+        disabled={pastLen === 0}
+        title="Undo (Cmd/Ctrl+Z)"
+        data-testid="action-undo"
+      >↶ Undo</button>
+      <button
+        type="button"
+        onClick={redo}
+        disabled={futureLen === 0}
+        title="Redo (Cmd/Ctrl+Shift+Z)"
+        data-testid="action-redo"
+      >↷ Redo</button>
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
