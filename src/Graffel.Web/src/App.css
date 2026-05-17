@@ -328,6 +328,43 @@ html, body, #root {
   cursor: pointer;
 }
 
+/* Inspector inline row */
+.inspector-row-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+.inspector-link-button {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font: inherit;
+  color: var(--color-accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.inspector-link-button:hover { color: #1e40af; }
+
+/* Waypoint handles on selected edges */
+.graffel-waypoint-handle {
+  fill: var(--color-accent);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+  cursor: grab;
+  pointer-events: all;
+}
+.graffel-waypoint-handle:active { cursor: grabbing; }
+.graffel-waypoint-handle.is-real:hover  { fill: #1e40af; }
+.graffel-waypoint-handle.is-ghost {
+  fill: var(--color-accent);
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+.graffel-waypoint-handle.is-ghost:hover { opacity: 0.85; }
+
 /* Node resize handles */
 .graffel-resize-handle {
   width: 8px !important;

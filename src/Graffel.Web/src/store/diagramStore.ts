@@ -50,6 +50,10 @@ interface DiagramState {
   updateEdgeLabel: (id: string, label: string) => void
   updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeType: (id: string, type: EdgeType) => void
+  addEdgeWaypoint: (id: string, point: { x: number; y: number }, index?: number) => void
+  moveEdgeWaypoint: (id: string, index: number, point: { x: number; y: number }) => void
+  removeEdgeWaypoint: (id: string, index: number) => void
+  clearEdgeWaypoints: (id: string) => void
   addEdge: (
     source: string,
     target: string,
@@ -149,6 +153,51 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
     }))
   },
 
+  addEdgeWaypoint(id, point, index) {
+    set((s) => ({
+      edges: s.edges.map((e) => {
+        if (e.id !== id) return e
+        const current = ((e.data as { waypoints?: Array<{ x: number; y: number }> }).waypoints ?? [])
+        const next = [...current]
+        const at = index === undefined || index > next.length ? next.length : Math.max(0, index)
+        next.splice(at, 0, { ...point })
+        return { ...e, data: { ...e.data, waypoints: next } }
+      }),
+    }))
+  },
+
+  moveEdgeWaypoint(id, index, point) {
+    set((s) => ({
+      edges: s.edges.map((e) => {
+        if (e.id !== id) return e
+        const current = ((e.data as { waypoints?: Array<{ x: number; y: number }> }).waypoints ?? [])
+        if (index < 0 || index >= current.length) return e
+        const next = current.map((p, i) => (i === index ? { ...point } : p))
+        return { ...e, data: { ...e.data, waypoints: next } }
+      }),
+    }))
+  },
+
+  removeEdgeWaypoint(id, index) {
+    set((s) => ({
+      edges: s.edges.map((e) => {
+        if (e.id !== id) return e
+        const current = ((e.data as { waypoints?: Array<{ x: number; y: number }> }).waypoints ?? [])
+        if (index < 0 || index >= current.length) return e
+        const next = current.filter((_, i) => i !== index)
+        return { ...e, data: { ...e.data, waypoints: next } }
+      }),
+    }))
+  },
+
+  clearEdgeWaypoints(id) {
+    set((s) => ({
+      edges: s.edges.map((e) =>
+        e.id === id ? { ...e, data: { ...e.data, waypoints: [] } } : e,
+      ),
+    }))
+  },
+
   addEdge(source, target, opts) {
     if (source === target) return null
     const id = `e_${ulid()}`
@@ -212,3 +261,10 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
 
   reset() { set(emptyState()) },
 }))
+
+// Expose the store on `window` for Playwright tests so they can drive
+// selection and other state changes without fighting React Flow's pointer
+// hit-testing. Harmless in production; just a window assignment.
+if (typeof window !== 'undefined') {
+  ;(window as unknown as Record<string, unknown>).__graffel = { useDiagramStore }
+}

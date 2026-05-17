@@ -8,9 +8,11 @@ export function EdgeInspector({ edgeId }: { edgeId: string }) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel)
   const updateEdgeStyle = useDiagramStore((s) => s.updateEdgeStyle)
   const updateEdgeType = useDiagramStore((s) => s.updateEdgeType)
+  const clearEdgeWaypoints = useDiagramStore((s) => s.clearEdgeWaypoints)
 
   if (!edge) return null
   const style = (edge.data.style ?? {}) as EdgeStyle
+  const waypointCount = edge.data.waypoints?.length ?? 0
 
   return (
     <div className="inspector-body" data-testid="edge-inspector">
@@ -29,6 +31,25 @@ export function EdgeInspector({ edgeId }: { edgeId: string }) {
             ]}
           />
         </Field>
+      </Group>
+
+      <Group title="Corners">
+        <div className="inspector-row-inline" data-testid="ei-waypoint-count">
+          <span>{waypointCount === 0
+            ? 'No corners — drag a midpoint to add one.'
+            : `${waypointCount} corner${waypointCount === 1 ? '' : 's'}`}
+          </span>
+          {waypointCount > 0 ? (
+            <button
+              type="button"
+              className="inspector-link-button"
+              onClick={() => clearEdgeWaypoints(edgeId)}
+              data-testid="ei-clear-corners"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
       </Group>
 
       <Group title="Label">

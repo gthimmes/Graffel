@@ -35,8 +35,13 @@ export function toReactFlowEdge(e: GraffelEdge): RFEdge {
     sourceHandle: e.sourceHandle ?? undefined,
     target: e.target,
     targetHandle: e.targetHandle ?? undefined,
-    type: e.type === 'orthogonal' ? 'smoothstep' : e.type === 'straight' ? 'straight' : 'default',
+    // Always our custom edge — it handles every routing mode + waypoints + selection handles.
+    type: 'waypoint',
     label: e.data.label || undefined,
+    data: {
+      waypoints: e.data.waypoints ?? [],
+      routingMode: e.type,
+    },
     style: {
       stroke: s.strokeColor,
       strokeWidth: s.strokeWidth,

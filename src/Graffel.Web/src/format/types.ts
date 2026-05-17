@@ -37,6 +37,7 @@ export interface GraffelEdge {
   data: {
     label: string
     style?: Record<string, unknown>
+    waypoints?: Array<{ x: number; y: number }>
   }
 }
 

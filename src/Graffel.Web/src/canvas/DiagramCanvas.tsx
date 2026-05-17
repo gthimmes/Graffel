@@ -19,9 +19,11 @@ import {
 } from '../store/persistence'
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
 import { ShapeNode } from './ShapeNode'
+import { WaypointEdge } from './WaypointEdge'
 import type { NodeType } from '../format/types'
 
 const nodeTypes = { shape: ShapeNode }
+const edgeTypes = { waypoint: WaypointEdge }
 
 export function DiagramCanvas() {
   const nodes = useDiagramStore((s) => s.nodes)
@@ -36,8 +38,23 @@ export function DiagramCanvas() {
   const toDocument = useDiagramStore((s) => s.toDocument)
   const setTitle = useDiagramStore((s) => s.setTitle)
 
-  const rfNodes = useMemo(() => nodes.map(toReactFlowNode), [nodes])
-  const rfEdges = useMemo(() => edges.map(toReactFlowEdge), [edges])
+  const selectedNodeIds = useDiagramStore((s) => s.selectedNodeIds)
+  const selectedEdgeIds = useDiagramStore((s) => s.selectedEdgeIds)
+
+  const rfNodes = useMemo(
+    () => nodes.map((n) => ({
+      ...toReactFlowNode(n),
+      selected: selectedNodeIds.includes(n.id),
+    })),
+    [nodes, selectedNodeIds],
+  )
+  const rfEdges = useMemo(
+    () => edges.map((e) => ({
+      ...toReactFlowEdge(e),
+      selected: selectedEdgeIds.includes(e.id),
+    })),
+    [edges, selectedEdgeIds],
+  )
 
   const { screenToFlowPosition } = useReactFlow()
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -156,6 +173,7 @@ export function DiagramCanvas() {
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

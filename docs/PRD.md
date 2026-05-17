@@ -121,8 +121,8 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 ## Phased roadmap (now / next / later)
 
 - **Shipped:** v1.0 canvas MVP — single-user, localStorage + file download/upload, PNG/SVG export, palette, connectors.
-- **In progress:** v1.1 Inspector — right-side property panel for node + edge styling, resize, edge geometry type switch.
-- **Next:** v1.2 connector geometry — draggable waypoints for explicit corner/turn control.
+- **Shipped:** v1.1 Inspector — right-side property panel for node + edge styling, resize, edge geometry type switch.
+- **In progress:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
 
@@ -172,3 +172,33 @@ When **nothing or multi-selection**: panel shows an empty/hint state.
 **Hand-offs:**
 - Engineer: build per TDD discipline (failing test first); add Playwright coverage for inspector flows.
 - QA: three new golden flows — select-node-and-change-font, resize-persists-reload, switch-edge-to-curved.
+
+---
+
+## v1.2 — Connector waypoints (current)
+
+**Why this slice.** v1.1 lets users switch a connector between orthogonal / straight / curved, but the *path* is still auto-routed. The user's PRD-stage ask was "where corners and turns are." This slice gives users direct, dragged control over connector geometry.
+
+**Scope.** See [ADR-0004](./adr/0004-connector-waypoints.md) for the full design. In short:
+- Each edge can carry an optional `data.waypoints: { x, y }[]` array (flow coordinates).
+- A custom WaypointEdge renders an SVG path through source → waypoints → target. Orthogonal L-bends between consecutive points (when `edge.type === 'orthogonal'`).
+- When an edge is selected:
+  - Each waypoint shows a draggable circle handle. Drag = `moveEdgeWaypoint`; snaps to 8px grid.
+  - Each segment shows a faded "ghost" handle at its midpoint. Drag = insert a new waypoint at the drop position (`addEdgeWaypoint`).
+- The Inspector shows a "Corners: N" badge + a "Clear corners" button (`clearEdgeWaypoints`).
+- Schema impact: none. Optional new field in `edge.data`.
+
+**Goals (v1.2):**
+- A user can place at least 2 corners on a connector in under 10 seconds, no documentation needed.
+- Waypoints persist across reload + survive .graffel round-trip.
+- Moving a connected shape does NOT drag the waypoint with it (the line just reaches farther — see ADR-0004 "consequences").
+
+**Non-goals for v1.2:**
+- Obstacle avoidance / auto-routing around other shapes.
+- Snapping to other shapes' alignment lines.
+- Bezier curves with waypoints (documented limitation; bezier ignores waypoints).
+- Touch-friendly handle sizing.
+
+**Hand-offs:**
+- Engineer: TDD on the waypoint store actions before any rendering; Playwright for drag interactions.
+- QA: cover insert-via-midpoint-drag, move-via-handle-drag, clear-via-inspector, and waypoint-survives-reload.
