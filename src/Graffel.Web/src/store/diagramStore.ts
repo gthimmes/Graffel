@@ -9,30 +9,11 @@ import type {
   GraffelEdge,
   GraffelNode,
   HandleSide,
-  NodeType,
 } from '../format/types'
+import { getShape } from '../shapes/registry'
 
-const DEFAULT_SIZES: Record<NodeType, { w: number; h: number }> = {
-  rectangle: { w: 160, h: 80 },
-  ellipse:   { w: 160, h: 80 },
-  diamond:   { w: 140, h: 100 },
-  text:      { w: 160, h: 40 },
-  service:   { w: 160, h: 80 },
-  database:  { w: 120, h: 90 },
-  queue:     { w: 160, h: 60 },
-  boundary:  { w: 320, h: 200 },
-}
-
-const DEFAULT_LABELS: Record<NodeType, string> = {
-  rectangle: 'Rectangle',
-  ellipse:   'Ellipse',
-  diamond:   'Decision',
-  text:      'Text',
-  service:   'Service',
-  database:  'Database',
-  queue:     'Queue',
-  boundary:  'Boundary',
-}
+const FALLBACK_SIZE = { w: 160, h: 80 }
+const FALLBACK_LABEL = 'Shape'
 
 const HISTORY_LIMIT = 50
 const COALESCE_WINDOW_MS = 300
@@ -62,7 +43,7 @@ interface DiagramState {
   _lastCoalesceKey: string | null
   _lastCoalesceAt: number
 
-  addNode: (type: NodeType, position: { x: number; y: number }) => string
+  addNode: (shapeId: string, position: { x: number; y: number }) => string
   updateNodePosition: (id: string, position: { x: number; y: number }) => void
   updateNodeSize: (id: string, size: { w: number; h: number }) => void
   updateNodeLabel: (id: string, label: string) => void
@@ -155,14 +136,18 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
   return {
     ...emptyState(),
 
-    addNode(type, position) {
+    addNode(shapeId, position) {
+      const def = getShape(shapeId)
       const id = `n_${ulid()}`
       const node: GraffelNode = {
         id,
-        type,
+        type: shapeId,
         position,
-        size: { ...DEFAULT_SIZES[type] },
-        data: { label: DEFAULT_LABELS[type] },
+        size: { ...(def?.defaultSize ?? FALLBACK_SIZE) },
+        data: {
+          label: def?.label ?? FALLBACK_LABEL,
+          style: def?.defaultStyle ? { ...def.defaultStyle } : undefined,
+        },
       }
       snapshot(null)
       set((s) => ({ nodes: [...s.nodes, node] }))

@@ -128,7 +128,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v2.0 accounts — Google OAuth sign-in foundation. See [ADR-0007](./adr/0007-auth-google-oauth.md).
 - **Shipped:** v2.1 Drive save/open — backend-proxied Drive calls. See [ADR-0008](./adr/0008-google-drive-integration.md).
 - **Shipped:** v2.2 share-by-link view-only — snapshot share links. See [ADR-0009](./adr/0009-share-by-link.md). **v2 PRD complete.**
-- **Later (low confidence on timing):** v3 — realtime multiplayer.
+- **In progress:** v3.0 shape library + connector polish — pack-based shape registry, redesigned palette, library manager, right-click connector menu. See [ADR-0010](./adr/0010-shape-library.md).
+- **Next:** v3.1 AWS pack, v3.2 GCP pack, v3.3 Azure pack, v3.4 Kubernetes pack — each its own commit.
+- **Later (low confidence on timing):** realtime multiplayer (was v3; renumbering deferred — call it "v4" mentally).
 - **Later:** v3 — realtime multiplayer.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
@@ -328,3 +330,45 @@ When **nothing or multi-selection**: panel shows an empty/hint state.
 - Embed (iframe) support.
 
 After v2.2 lands, v2 PRD is complete — onward to v3 multiplayer.
+
+---
+
+## v3.0 — Shape library foundation + connector polish (current)
+
+**Why this slice.** The v1 palette was a placeholder — text labels with colored squares that looked like checkboxes. To be credible as "architecture-first" we need real visual shapes, dozens of them, categorized and searchable. v3.0 lays the foundation (registry, palette UX, library manager) and ships the first two packs (Basic + Architecture Core). v3.1–v3.4 add the cloud packs.
+
+Also: ADR-0004 (v1.2) gave users explicit waypoint placement. Users now want a one-click escape hatch — right-click → "Make right-angle" — to abandon explicit routing and let the auto-router take over. v3.0 closes that loop.
+
+**Scope.** See [ADR-0010](./adr/0010-shape-library.md):
+- Pack-based shape registry (`ShapeDef`, `Pack`); palette/canvas resolve shapes by id (`'basic:rectangle'`, `'arch-core:database'`).
+- Two packs shipped: **Basic** (Rectangle, Ellipse, Diamond, Text) and **Architecture · Core** (Service, Database, Queue, Boundary, Server, Storage, Load Balancer, CDN, Cache, DNS, Function, API Gateway, Client, Mobile, IoT, External).
+- Redesigned Palette: search input, collapsible categories, visual mini-SVG previews, tooltip on hover. No more colored-square swatches.
+- Library Manager modal: toggle which packs appear; persists to localStorage.
+- Connector right-click context menu: Make right-angle / Make straight / Make curved / Clear corners.
+- Legacy `.graffel` files continue to load (the v1 ids `'rectangle'` etc. alias to the Basic pack's pack-qualified ids).
+
+**Goals (v3.0):**
+- A user can find any installed shape in under 5 seconds (search + categories).
+- Palette load time stays well under 100ms across all enabled packs.
+- The colored-square-that-looked-like-a-checkbox is gone.
+- Right-click on any connector reveals the geometry menu; selecting "Make right-angle" auto-routes the line.
+
+**Non-goals for v3.0:**
+- Official AWS/GCP/Azure/CNCF icon sets — we ship stylized icons we author ourselves (see ADR-0010 license stance).
+- Shape grouping or "smart shapes" (containers that auto-resize around children).
+- Per-shape connection points beyond the four edge handles.
+- Touch/mobile-friendly handle sizing for the right-click menu.
+
+---
+
+## v3.1 — AWS pack (next)
+~20 of the most-used AWS services. Same `Pack` shape; drops into the existing registry with no UI changes.
+
+## v3.2 — GCP pack
+~15 GCP services.
+
+## v3.3 — Azure pack
+~15 Azure services.
+
+## v3.4 — Kubernetes pack
+~12 K8s resources. After v3.4 lands, "v3 shape library" is fully shipped.

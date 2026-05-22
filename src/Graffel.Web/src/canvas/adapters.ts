@@ -19,7 +19,7 @@ export function toReactFlowNode(n: GraffelNode): RFNode {
     style: { width: n.size.w, height: n.size.h },
     data: {
       label: n.data.label,
-      shapeType: n.type,
+      shapeId: n.type,
       width: n.size.w,
       height: n.size.h,
       style: n.data.style,

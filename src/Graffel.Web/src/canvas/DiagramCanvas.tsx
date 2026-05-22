@@ -20,8 +20,9 @@ import {
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
+import { EdgeContextMenu } from './EdgeContextMenu'
+import { useEdgeMenuStore } from './edgeMenuStore'
 import { useUiStore } from '../ui/CommandPalette'
-import type { NodeType } from '../format/types'
 
 const nodeTypes = { shape: ShapeNode }
 const edgeTypes = { waypoint: WaypointEdge }
@@ -41,6 +42,8 @@ export function DiagramCanvas() {
   const selectedNodeIds = useDiagramStore((s) => s.selectedNodeIds)
   const selectedEdgeIds = useDiagramStore((s) => s.selectedEdgeIds)
   const readOnly = useDiagramStore((s) => s.readOnly)
+  const edgeMenu = useEdgeMenuStore((s) => s.open)
+  const closeEdgeMenu = useEdgeMenuStore((s) => s.close)
 
   const rfNodes = useMemo(
     () => nodes.map((n) => ({
@@ -126,13 +129,13 @@ export function DiagramCanvas() {
 
   const onDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
-    const type = event.dataTransfer.getData('application/graffel-node-type') as NodeType
-    if (!type) return
+    const shapeId = event.dataTransfer.getData('application/graffel-shape-id')
+    if (!shapeId) return
     const position = screenToFlowPosition({
       x: event.clientX,
       y: event.clientY,
     })
-    addNode(type, position)
+    addNode(shapeId, position)
   }, [addNode, screenToFlowPosition])
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -147,8 +150,8 @@ export function DiagramCanvas() {
 
   // Keyboard shortcuts.
   useEffect(() => {
-    const QUICK_INSERT: Record<string, NodeType> = {
-      r: 'rectangle', e: 'ellipse', d: 'diamond', t: 'text',
+    const QUICK_INSERT: Record<string, string> = {
+      r: 'basic:rectangle', e: 'basic:ellipse', d: 'basic:diamond', t: 'basic:text',
     }
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
@@ -231,7 +234,7 @@ export function DiagramCanvas() {
       if (!mod && !e.altKey && QUICK_INSERT[lower]) {
         e.preventDefault()
         useDiagramStore.getState().addNode(
-          QUICK_INSERT[lower] as NodeType,
+          QUICK_INSERT[lower]!,
           { ...lastCursorFlow.current },
         )
         return
@@ -268,6 +271,14 @@ export function DiagramCanvas() {
         <Controls />
         <MiniMap pannable zoomable />
       </ReactFlow>
+      {edgeMenu ? (
+        <EdgeContextMenu
+          edgeId={edgeMenu.edgeId}
+          x={edgeMenu.x}
+          y={edgeMenu.y}
+          onClose={closeEdgeMenu}
+        />
+      ) : null}
     </div>
   )
 }

@@ -3,6 +3,12 @@
 
 export const CURRENT_SCHEMA_VERSION = 1 as const
 
+/**
+ * The v1 shape types. Still exported for backward-compat with callers that
+ * predate the v3 shape registry. The store's `addNode` accepts any string
+ * shapeId — the registry resolves both pack-qualified ids ('arch-core:service')
+ * and legacy unqualified ids ('service') to the same shape definition.
+ */
 export type NodeType =
   | 'rectangle'
   | 'ellipse'
@@ -18,7 +24,8 @@ export type HandleSide = 'top' | 'right' | 'bottom' | 'left'
 
 export interface GraffelNode {
   id: string
-  type: NodeType
+  /** Shape id from the registry. Either pack-qualified ('basic:rectangle') or a v1 legacy id ('rectangle'). */
+  type: string
   position: { x: number; y: number }
   size: { w: number; h: number }
   data: {

@@ -7,7 +7,6 @@ import {
   serializeDocument,
 } from '../format/graffelFile'
 import { exportPng, exportSvg } from '../export/exportImage'
-import type { NodeType } from '../format/types'
 
 export interface Command {
   id: string
@@ -42,20 +41,20 @@ function viewportCenter(): { x: number; y: number } {
   return { x: 200, y: 200 }
 }
 
-function insertNode(type: NodeType): void {
-  useDiagramStore.getState().addNode(type, viewportCenter())
+function insertNode(shapeId: string): void {
+  useDiagramStore.getState().addNode(shapeId, viewportCenter())
 }
 
 export const COMMANDS: Command[] = [
   // Insert
-  { id: 'insert-service',   group: 'Insert', label: 'Insert: Service',   keywords: ['add', 'shape'], run: () => insertNode('service') },
-  { id: 'insert-database',  group: 'Insert', label: 'Insert: Database',  keywords: ['add', 'shape', 'db', 'storage'], run: () => insertNode('database') },
-  { id: 'insert-queue',     group: 'Insert', label: 'Insert: Queue',     keywords: ['add', 'shape', 'message bus'], run: () => insertNode('queue') },
-  { id: 'insert-boundary',  group: 'Insert', label: 'Insert: Boundary',  keywords: ['add', 'group', 'container'], run: () => insertNode('boundary') },
-  { id: 'insert-rectangle', group: 'Insert', label: 'Insert: Rectangle', shortcut: 'R', keywords: ['add', 'rect'], run: () => insertNode('rectangle') },
-  { id: 'insert-ellipse',   group: 'Insert', label: 'Insert: Ellipse',   shortcut: 'E', keywords: ['add', 'oval', 'circle'], run: () => insertNode('ellipse') },
-  { id: 'insert-diamond',   group: 'Insert', label: 'Insert: Diamond',   shortcut: 'D', keywords: ['add', 'decision'], run: () => insertNode('diamond') },
-  { id: 'insert-text',      group: 'Insert', label: 'Insert: Text',      shortcut: 'T', keywords: ['add', 'label', 'note'], run: () => insertNode('text') },
+  { id: 'insert-service',   group: 'Insert', label: 'Insert: Service',   keywords: ['add', 'shape'], run: () => insertNode('arch-core:service') },
+  { id: 'insert-database',  group: 'Insert', label: 'Insert: Database',  keywords: ['add', 'shape', 'db', 'storage'], run: () => insertNode('arch-core:database') },
+  { id: 'insert-queue',     group: 'Insert', label: 'Insert: Queue',     keywords: ['add', 'shape', 'message bus'], run: () => insertNode('arch-core:queue') },
+  { id: 'insert-boundary',  group: 'Insert', label: 'Insert: Boundary',  keywords: ['add', 'group', 'container'], run: () => insertNode('arch-core:boundary') },
+  { id: 'insert-rectangle', group: 'Insert', label: 'Insert: Rectangle', shortcut: 'R', keywords: ['add', 'rect'], run: () => insertNode('basic:rectangle') },
+  { id: 'insert-ellipse',   group: 'Insert', label: 'Insert: Ellipse',   shortcut: 'E', keywords: ['add', 'oval', 'circle'], run: () => insertNode('basic:ellipse') },
+  { id: 'insert-diamond',   group: 'Insert', label: 'Insert: Diamond',   shortcut: 'D', keywords: ['add', 'decision'], run: () => insertNode('basic:diamond') },
+  { id: 'insert-text',      group: 'Insert', label: 'Insert: Text',      shortcut: 'T', keywords: ['add', 'label', 'note'], run: () => insertNode('basic:text') },
 
   // Edit
   { id: 'undo',                group: 'Edit', label: 'Undo',                shortcut: 'Cmd+Z',       run: () => useDiagramStore.getState().undo() },

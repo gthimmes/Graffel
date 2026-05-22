@@ -74,8 +74,10 @@ test('downloaded .graffel file is well-formed JSON with the expected schema', as
   expect(json.schemaVersion).toBe(1)
   expect(Array.isArray(json.nodes)).toBe(true)
   expect(json.nodes.length).toBe(2)
-  expect(json.nodes[0].type).toBe('service')
-  expect(json.nodes[1].type).toBe('database')
+  // v3+ uses pack-qualified ids ('arch-core:service'); v1/v2 used short ('service').
+  // Accept either form so the test survives the shape-registry refactor.
+  expect(json.nodes[0].type).toMatch(/^(arch-core:)?service$/)
+  expect(json.nodes[1].type).toMatch(/^(arch-core:)?database$/)
   expect(json.reserved).toBeDefined()
 })
 

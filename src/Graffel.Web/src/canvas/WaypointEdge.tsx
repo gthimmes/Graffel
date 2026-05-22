@@ -8,6 +8,7 @@ import {
 } from '@xyflow/react'
 import { useDiagramStore } from '../store/diagramStore'
 import type { EdgeType } from '../format/types'
+import { useEdgeMenuStore } from './edgeMenuStore'
 import {
   buildWaypointPath,
   segmentMidpoints,
@@ -49,10 +50,30 @@ export function WaypointEdge(props: EdgeProps) {
     [path] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
   }
 
+  const readOnly = useDiagramStore((s) => s.readOnly)
+  const openMenu = useEdgeMenuStore((s) => s.openAt)
+
+  function onContextMenu(e: React.MouseEvent<SVGPathElement>) {
+    if (readOnly) return
+    e.preventDefault()
+    e.stopPropagation()
+    openMenu(id, e.clientX, e.clientY)
+  }
+
   return (
     <>
       <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} interactionWidth={20} />
-      {selected ? (
+      {/* Extra invisible-but-clickable path widens the context-menu hit area. */}
+      <path
+        d={path}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        style={{ pointerEvents: readOnly ? 'none' : 'stroke', cursor: 'context-menu' }}
+        onContextMenu={onContextMenu}
+        data-testid={`edge-hitbox-${id}`}
+      />
+      {selected && !readOnly ? (
         <WaypointHandles
           edgeId={id}
           source={source}
