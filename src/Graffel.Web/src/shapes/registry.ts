@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Pack, ShapeDef } from './types'
 import { BASIC_PACK } from './packs/basic'
 import { ARCH_CORE_PACK } from './packs/archCore'
+import { AWS_PACK } from './packs/aws'
 
 /**
  * The pack manifest. Add new packs here. Order is the order they appear in the
@@ -10,6 +11,7 @@ import { ARCH_CORE_PACK } from './packs/archCore'
 export const PACKS: Pack[] = [
   BASIC_PACK,
   ARCH_CORE_PACK,
+  AWS_PACK,
 ]
 
 /**
