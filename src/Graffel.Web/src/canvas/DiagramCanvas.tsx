@@ -40,6 +40,7 @@ export function DiagramCanvas() {
 
   const selectedNodeIds = useDiagramStore((s) => s.selectedNodeIds)
   const selectedEdgeIds = useDiagramStore((s) => s.selectedEdgeIds)
+  const readOnly = useDiagramStore((s) => s.readOnly)
 
   const rfNodes = useMemo(
     () => nodes.map((n) => ({
@@ -254,9 +255,12 @@ export function DiagramCanvas() {
         edges={rfEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onNodesChange={readOnly ? undefined : onNodesChange}
+        onEdgesChange={readOnly ? undefined : onEdgesChange}
+        onConnect={readOnly ? undefined : onConnect}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
+        elementsSelectable
         fitView
         proOptions={{ hideAttribution: true }}
       >

@@ -1,6 +1,7 @@
 using Graffel.Api.Auth;
 using Graffel.Api.Drive;
 using Graffel.Api.Endpoints;
+using Graffel.Api.Share;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,9 @@ if (useInMemoryDrive)
 else
     builder.Services.AddScoped<IDriveStore, GoogleDriveStore>();
 
+// IShareStore is in-memory in v2.2 (see ADR-0009 — restarts wipe shares).
+builder.Services.AddSingleton<IShareStore, InMemoryShareStore>();
+
 var app = builder.Build();
 
 app.UseAuthentication();
@@ -31,6 +35,7 @@ app.MapHealthEndpoints();
 app.MapVersionEndpoints();
 app.MapAuthEndpoints();
 app.MapDriveEndpoints();
+app.MapShareEndpoints();
 
 // Serve the React SPA from wwwroot. Fallback to index.html for client-side routing.
 app.UseDefaultFiles();

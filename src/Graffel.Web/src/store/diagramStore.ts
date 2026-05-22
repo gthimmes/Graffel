@@ -53,6 +53,8 @@ interface DiagramState {
   title: string
   /** Drive file id this diagram is bound to, if it's been saved to Drive. */
   driveFileId: string | null
+  /** When true (v2.2 shared view), mutating actions are silently no-op. */
+  readOnly: boolean
 
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
@@ -85,6 +87,7 @@ interface DiagramState {
   removeSelection: () => void
   setTitle: (title: string) => void
   setDriveFileId: (id: string | null) => void
+  setReadOnly: (value: boolean) => void
 
   // History API
   undo: () => void
@@ -99,7 +102,7 @@ interface DiagramState {
 
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
-  | 'documentId' | 'title' | 'driveFileId'
+  | 'documentId' | 'title' | 'driveFileId' | 'readOnly'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -111,6 +114,7 @@ function emptyState(): Pick<DiagramState,
     documentId: doc.id,
     title: doc.metadata.title,
     driveFileId: null,
+    readOnly: false,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -364,6 +368,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     },
 
     setDriveFileId(id) { set({ driveFileId: id }) },
+    setReadOnly(value) { set({ readOnly: value }) },
 
     undo() {
       const s = get()

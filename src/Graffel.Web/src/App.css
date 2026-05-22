@@ -177,6 +177,61 @@ html, body, #root {
 .drive-file-time { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
 .drive-list-empty { padding: 16px; color: var(--color-text-muted); font-size: 12px; text-align: center; }
 
+.share-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.share-status {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Share-view (read-only) layout */
+.share-view-toolbar .share-view-title {
+  font-weight: 500;
+  color: var(--color-text);
+  padding: 0 8px;
+}
+.share-view-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+.share-view-open-app {
+  font-size: 12px;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-left: 8px;
+}
+.share-view-open-app:hover { background: var(--color-accent-soft); }
+
+.share-view-body { background: var(--color-bg); }
+
+.share-view-empty {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.share-view-empty h2 { margin: 0 0 8px; color: var(--color-text); }
+
 .graffel-palette {
   flex: 0 0 200px;
   background: var(--color-surface);

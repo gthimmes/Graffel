@@ -3,6 +3,7 @@ import { useDiagramStore } from '../store/diagramStore'
 import { AuthMenu } from '../auth/AuthMenu'
 import { useAuth } from '../auth/useAuth'
 import { DriveMenu } from '../drive/DriveMenu'
+import { ShareButton } from '../share/ShareButton'
 import {
   parseDocument,
   serializeDocument,
@@ -112,6 +113,7 @@ export function Toolbar() {
         <>
           <span className="toolbar-divider" />
           <DriveMenu />
+          <ShareButton />
         </>
       ) : null}
       <span className="toolbar-divider" />
