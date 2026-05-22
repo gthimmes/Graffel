@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import { AuthMenu } from '../auth/AuthMenu'
+import { useAuth } from '../auth/useAuth'
+import { DriveMenu } from '../drive/DriveMenu'
 import {
   parseDocument,
   serializeDocument,
@@ -20,6 +22,7 @@ function downloadBlob(name: string, mime: string, data: string | Blob) {
 }
 
 export function Toolbar() {
+  const { status: authStatus } = useAuth()
   const title = useDiagramStore((s) => s.title)
   const setTitle = useDiagramStore((s) => s.setTitle)
   const toDocument = useDiagramStore((s) => s.toDocument)
@@ -105,6 +108,12 @@ export function Toolbar() {
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>
       <button type="button" onClick={onExportSvg} data-testid="action-export-svg">Export SVG</button>
+      {authStatus === 'signed-in' ? (
+        <>
+          <span className="toolbar-divider" />
+          <DriveMenu />
+        </>
+      ) : null}
       <span className="toolbar-divider" />
       <AuthMenu />
       <input

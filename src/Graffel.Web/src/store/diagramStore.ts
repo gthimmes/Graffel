@@ -51,6 +51,8 @@ interface DiagramState {
   selectedEdgeIds: string[]
   documentId: string
   title: string
+  /** Drive file id this diagram is bound to, if it's been saved to Drive. */
+  driveFileId: string | null
 
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
@@ -82,6 +84,7 @@ interface DiagramState {
   selectAll: () => void
   removeSelection: () => void
   setTitle: (title: string) => void
+  setDriveFileId: (id: string | null) => void
 
   // History API
   undo: () => void
@@ -96,7 +99,7 @@ interface DiagramState {
 
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
-  | 'documentId' | 'title'
+  | 'documentId' | 'title' | 'driveFileId'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -107,6 +110,7 @@ function emptyState(): Pick<DiagramState,
     selectedEdgeIds: [],
     documentId: doc.id,
     title: doc.metadata.title,
+    driveFileId: null,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -359,6 +363,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       set({ title })
     },
 
+    setDriveFileId(id) { set({ driveFileId: id }) },
+
     undo() {
       const s = get()
       if (s._past.length === 0) return
@@ -418,15 +424,22 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       doc.metadata.updatedAt = new Date().toISOString()
       doc.nodes = s.nodes
       doc.edges = s.edges
+      // Persist Drive binding in the reserved.remote slot per ADR-0002.
+      doc.reserved = {
+        ...doc.reserved,
+        remote: s.driveFileId ? { driveFileId: s.driveFileId } : null,
+      }
       return doc
     },
 
     loadDocument(doc) {
+      const remote = (doc.reserved as { remote?: { driveFileId?: string } | null } | undefined)?.remote
       set({
         nodes: doc.nodes,
         edges: doc.edges,
         documentId: doc.id,
         title: doc.metadata.title,
+        driveFileId: remote?.driveFileId ?? null,
         selectedNodeIds: [],
         selectedEdgeIds: [],
         _past: [],

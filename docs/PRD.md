@@ -125,8 +125,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
 - **Shipped:** v1.3 keyboard + history — undo/redo, quick-insert R/E/D/T, duplicate, nudge, select-all.
 - **Shipped:** v1.4 command palette — `/`-opened fuzzy command palette covering every v1 action. **v1 PRD complete.**
-- **In progress:** v2.0 accounts — Google OAuth sign-in foundation. See [ADR-0007](./adr/0007-auth-google-oauth.md).
-- **Next:** v2.1 Google Drive save/open; then v2.2 share-by-link view-only. After v2.2, v2 PRD is complete.
+- **Shipped:** v2.0 accounts — Google OAuth sign-in foundation. See [ADR-0007](./adr/0007-auth-google-oauth.md).
+- **In progress:** v2.1 Drive save/open — backend-proxied Drive calls. See [ADR-0008](./adr/0008-google-drive-integration.md).
+- **Next:** v2.2 share-by-link view-only. After v2.2, v2 PRD is complete.
 - **Later:** v3 — realtime multiplayer.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.

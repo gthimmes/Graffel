@@ -28,6 +28,11 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     stdout: 'pipe',
     stderr: 'pipe',
+    env: {
+      // Force the in-memory Drive store so E2E doesn't hit Google.
+      // Double-underscore is .NET configuration's section separator for env vars.
+      Drive__UseInMemory: 'true',
+    },
   },
   projects: [
     {

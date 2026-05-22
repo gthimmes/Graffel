@@ -133,6 +133,50 @@ html, body, #root {
 .auth-name { font-weight: 500; color: var(--color-text); }
 .auth-signout-btn { padding: 2px 6px !important; font-size: 11px !important; }
 
+.drive-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.drive-status {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.drive-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+}
+.drive-list ul { list-style: none; padding: 4px 0; margin: 0; }
+.drive-list li button {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.drive-list li button:hover { background: var(--color-accent-soft); }
+.drive-file-name { font-size: 13px; color: var(--color-text); }
+.drive-file-time { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
+.drive-list-empty { padding: 16px; color: var(--color-text-muted); font-size: 12px; text-align: center; }
+
 .graffel-palette {
   flex: 0 0 200px;
   background: var(--color-surface);
