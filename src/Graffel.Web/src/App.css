@@ -90,6 +90,49 @@ html, body, #root {
 .graffel-toolbar button:active:not(:disabled) { background: var(--color-accent-soft); }
 .graffel-toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.toolbar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 22px;
+  background: var(--color-border);
+  margin: 0 4px;
+}
+
+.auth-loading { color: var(--color-text-muted); font-size: 12px; padding: 0 8px; }
+
+.auth-signin-btn {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  border-color: var(--color-accent) !important;
+}
+.auth-signin-btn:hover { background: #1e40af !important; }
+
+.auth-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12px;
+}
+.auth-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.auth-avatar-fallback { background: var(--color-accent-soft); color: var(--color-accent); }
+.auth-name { font-weight: 500; color: var(--color-text); }
+.auth-signout-btn { padding: 2px 6px !important; font-size: 11px !important; }
+
 .graffel-palette {
   flex: 0 0 200px;
   background: var(--color-surface);

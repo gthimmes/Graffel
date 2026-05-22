@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
+import { AuthMenu } from '../auth/AuthMenu'
 import {
   parseDocument,
   serializeDocument,
@@ -104,6 +105,8 @@ export function Toolbar() {
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>
       <button type="button" onClick={onExportSvg} data-testid="action-export-svg">Export SVG</button>
+      <span className="toolbar-divider" />
+      <AuthMenu />
       <input
         ref={fileInput}
         type="file"

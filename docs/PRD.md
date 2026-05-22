@@ -125,7 +125,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v1.2 connector waypoints — draggable corners on connectors for explicit geometry control.
 - **Shipped:** v1.3 keyboard + history — undo/redo, quick-insert R/E/D/T, duplicate, nudge, select-all.
 - **Shipped:** v1.4 command palette — `/`-opened fuzzy command palette covering every v1 action. **v1 PRD complete.**
-- **Next:** v2 — accounts + Google Drive save/open + share-by-link. Gate: v1 shows engagement signal.
+- **In progress:** v2.0 accounts — Google OAuth sign-in foundation. See [ADR-0007](./adr/0007-auth-google-oauth.md).
+- **Next:** v2.1 Google Drive save/open; then v2.2 share-by-link view-only. After v2.2, v2 PRD is complete.
+- **Later:** v3 — realtime multiplayer.
 - **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
 - **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
 
@@ -259,3 +261,68 @@ When **nothing or multi-selection**: panel shows an empty/hint state.
 **Hand-offs:**
 - Engineer: command registry + fuzzy match first (TDD); then modal UI.
 - QA: cover `/` opens, type filters, Enter executes, Esc closes, and verify the executed command actually mutated the document.
+
+---
+
+## v2.0 — Accounts foundation (current)
+
+**Why this slice.** v2.1 (Drive save/open) and v2.2 (share-by-link) both depend on knowing who the user is. v2.0 is just that: a Google OAuth sign-in, a cookie session, and an `/api/me` endpoint. No Drive yet.
+
+**Scope.** See [ADR-0007](./adr/0007-auth-google-oauth.md) for the architecture. In short:
+- "Sign in with Google" button in the toolbar.
+- Server endpoints: `/api/auth/google/start`, `/api/auth/google/callback`, `/api/auth/signout`, `/api/me`.
+- Scopes requested up front include `drive.file` so v2.1 can use the same consent.
+- When signed in: toolbar shows the user's avatar + name + a Sign-out option.
+- When signed out: the v1 features (localStorage save, file download, export) continue working unchanged — auth is **opt-in** for v2.0.
+
+**Goals:**
+- Time from "Sign in" click to authenticated UI: under 5 seconds (excluding Google's consent page).
+- Reload preserves the session.
+- A user with no Google credentials configured (operator hasn't set up Cloud Console) sees a clear "Sign-in is not configured" message, not a crash.
+
+**Non-goals for v2.0:**
+- Multi-provider auth (email/password, GitHub, etc.).
+- Server-side user accounts table (no DB; identity comes from Google's `sub` claim, stored in the cookie).
+- Drive integration (v2.1).
+- Account deletion / data export UX (defer until we actually store user data server-side).
+
+**Hand-offs:**
+- Engineer: TestAuthHandler before the real Google handler; build with hermetic tests.
+- QA: cover anon → sign-in → signed-in → sign-out cycle via TestAuthHandler; document manual Google flow steps for release verification.
+
+---
+
+## v2.1 — Google Drive save/open (next)
+
+**Why this slice.** The user explicitly named GDrive as the primary remote storage in the original PRD discovery. v2.1 makes the local-only `.graffel` files cloud-resident.
+
+**Scope:**
+- "Save to Drive" creates (first time) or updates (subsequent saves) a `.graffel` file in the user's Drive, accessible only via the Graffel app (drive.file scope).
+- "Open from Drive" shows a list of the user's Graffel-created files; clicking one loads it.
+- The currently loaded diagram tracks its Drive file id (in the `.reserved.remote` slot per ADR-0002); subsequent saves overwrite that file.
+- Local autosave to localStorage continues to work as a fallback.
+
+**Non-goals for v2.1:**
+- Background autosave to Drive (only explicit Save to Drive in v2.1).
+- File rename / delete via the Graffel UI (do it in Drive).
+- Conflict detection between Drive and local edits.
+
+---
+
+## v2.2 — Share-by-link (next, then v2 done)
+
+**Why this slice.** The PRD names "share-by-link view-only" as the v2 collaboration surface — a stepping-stone to v3 multiplayer.
+
+**Scope:**
+- "Share" button creates a short token bound to the current Drive file id (or to a snapshot if not yet saved to Drive).
+- The token resolves at `/v/{token}` to a read-only render of the diagram.
+- Anyone with the link can view; no sign-in required to view.
+- Owners can revoke a share token.
+- Read-only mode hides the inspector + palette; canvas is pan/zoom only.
+
+**Non-goals for v2.2:**
+- Per-link expiry.
+- Comments / annotations on shared diagrams.
+- Embed (iframe) support.
+
+After v2.2 lands, v2 PRD is complete — onward to v3 multiplayer.
