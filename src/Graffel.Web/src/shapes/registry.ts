@@ -5,6 +5,7 @@ import { ARCH_CORE_PACK } from './packs/archCore'
 import { AWS_PACK } from './packs/aws'
 import { GCP_PACK } from './packs/gcp'
 import { AZURE_PACK } from './packs/azure'
+import { K8S_PACK } from './packs/k8s'
 
 /**
  * The pack manifest. Add new packs here. Order is the order they appear in the
@@ -16,6 +17,7 @@ export const PACKS: Pack[] = [
   AWS_PACK,
   GCP_PACK,
   AZURE_PACK,
+  K8S_PACK,
 ]
 
 /**
