@@ -2,9 +2,7 @@ import { create } from 'zustand'
 import type { Pack, ShapeDef } from './types'
 import { BASIC_PACK } from './packs/basic'
 import { ARCH_CORE_PACK } from './packs/archCore'
-import { AWS_PACK } from './packs/aws'
-import { GCP_PACK } from './packs/gcp'
-import { AZURE_PACK } from './packs/azure'
+import { CLOUD_PACK } from './packs/cloud'
 import { K8S_PACK } from './packs/k8s'
 
 /**
@@ -14,9 +12,7 @@ import { K8S_PACK } from './packs/k8s'
 export const PACKS: Pack[] = [
   BASIC_PACK,
   ARCH_CORE_PACK,
-  AWS_PACK,
-  GCP_PACK,
-  AZURE_PACK,
+  CLOUD_PACK,
   K8S_PACK,
 ]
 

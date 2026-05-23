@@ -136,13 +136,17 @@ const dns: ShapeRenderer = ({ width, height, fill, borderColor }) => (
   </ShapeSvg>
 )
 
-// ─── Function (lambda glyph) ─────────────────────────────────────────────────
+// ─── Function (transformation box with input/output arrows) ───────────────────
+// Replaces the v3 lambda glyph (which nobody recognized as a function symbol).
+// "ƒn" label inside a box, with arrows showing the transformation.
 const fnShape: ShapeRenderer = ({ width, height, fill, borderColor }) => (
   <ShapeSvg width={width} height={height} preserve="xMidYMid meet">
-    <rect x={6} y={6} width={88} height={88} rx={10} ry={10}
+    <rect x={26} y={32} width={48} height={36} rx={6} ry={6}
       fill={fill} stroke={borderColor} strokeWidth={SW} />
-    <path d="M 30 28 Q 38 28 42 36 L 60 80 M 42 36 L 28 80 M 30 72 L 64 72"
-      fill="none" stroke={borderColor} strokeWidth={SW * 1.3} strokeLinecap="round" />
+    <text x={50} y={56} textAnchor="middle" fontFamily="system-ui, sans-serif"
+      fontSize={20} fontStyle="italic" fontWeight={600} fill={borderColor}>fn</text>
+    <polyline points="12,50 24,50 20,46 M 24,50 20,54" fill="none" stroke={borderColor} strokeWidth={SW} strokeLinecap="round" />
+    <polyline points="76,50 88,50 84,46 M 88,50 84,54" fill="none" stroke={borderColor} strokeWidth={SW} strokeLinecap="round" />
   </ShapeSvg>
 )
 
@@ -208,16 +212,42 @@ const iot: ShapeRenderer = ({ width, height, fill, borderColor }) => (
   </ShapeSvg>
 )
 
-// ─── External (cloud with question of authority) ─────────────────────────────
+// ─── External (cloud, no rain) ────────────────────────────────────────────────
+// Centered cloud silhouette — the universal "external service / third party" icon.
 const external: ShapeRenderer = ({ width, height, fill, borderColor }) => (
   <ShapeSvg width={width} height={height} preserve="xMidYMid meet">
     <path
-      d="M 25 60 Q 12 60 12 47 Q 12 34 28 34 Q 30 22 46 22 Q 60 22 64 32 Q 84 32 84 50 Q 84 64 70 64 Z"
+      d="M 26 70 Q 12 70 12 56 Q 12 42 28 42 Q 30 28 48 28 Q 64 28 68 40 Q 88 40 88 58 Q 88 72 72 72 Z"
       fill={fill} stroke={borderColor} strokeWidth={SW}
     />
-    <line x1={36} y1={76} x2={36} y2={84} stroke={borderColor} strokeWidth={SW} />
-    <line x1={48} y1={72} x2={48} y2={86} stroke={borderColor} strokeWidth={SW} />
-    <line x1={60} y1={76} x2={60} y2={84} stroke={borderColor} strokeWidth={SW} />
+  </ShapeSvg>
+)
+
+// ─── Laptop (open laptop, side perspective) ──────────────────────────────────
+const laptop: ShapeRenderer = ({ width, height, fill, borderColor }) => (
+  <ShapeSvg width={width} height={height} preserve="xMidYMid meet">
+    {/* Screen */}
+    <rect x={20} y={20} width={60} height={42} rx={3} ry={3}
+      fill={fill} stroke={borderColor} strokeWidth={SW} />
+    <line x1={24} y1={26} x2={76} y2={26} stroke={borderColor} strokeWidth={SW * 0.5} opacity={0.6} />
+    {/* Base / keyboard */}
+    <polygon points="12,68 88,68 92,76 8,76"
+      fill={fill} stroke={borderColor} strokeWidth={SW} strokeLinejoin="round" />
+    <line x1={40} y1={72} x2={60} y2={72} stroke={borderColor} strokeWidth={SW * 0.7} />
+  </ShapeSvg>
+)
+
+// ─── User (generic person / persona, for user flows) ─────────────────────────
+const userShape: ShapeRenderer = ({ width, height, fill, borderColor }) => (
+  <ShapeSvg width={width} height={height} preserve="xMidYMid meet">
+    {/* Head */}
+    <circle cx={50} cy={32} r={12}
+      fill={fill} stroke={borderColor} strokeWidth={SW} />
+    {/* Shoulders / body */}
+    <path
+      d="M 22 80 Q 22 52 50 52 Q 78 52 78 80"
+      fill={fill} stroke={borderColor} strokeWidth={SW} strokeLinecap="round"
+    />
   </ShapeSvg>
 )
 
@@ -246,9 +276,11 @@ export const ARCH_CORE_PACK: Pack = {
     { id: 'arch-core:dns',           packId: 'arch-core', label: 'DNS',           keywords: ['resolver', 'route 53'],     defaultSize: { w: 120, h: 120 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: dns },
     { id: 'arch-core:function',      packId: 'arch-core', label: 'Function',      keywords: ['lambda', 'serverless'],     defaultSize: { w: 130, h: 130 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: '#f97316' }, render: fnShape },
     { id: 'arch-core:api-gateway',   packId: 'arch-core', label: 'API Gateway',   keywords: ['gateway', 'ingress'],       defaultSize: { w: 130, h: 130 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: '#7c3aed' }, render: apiGateway },
-    { id: 'arch-core:client',        packId: 'arch-core', label: 'Client',        keywords: ['browser', 'web', 'user'],   defaultSize: { w: 150, h: 110 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: client },
-    { id: 'arch-core:mobile',        packId: 'arch-core', label: 'Mobile',        keywords: ['phone', 'ios', 'android'],  defaultSize: { w: 80, h: 130 },  defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: mobile },
+    { id: 'arch-core:client',        packId: 'arch-core', label: 'Browser',       keywords: ['client', 'web', 'window'],  defaultSize: { w: 150, h: 110 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: client },
+    { id: 'arch-core:laptop',        packId: 'arch-core', label: 'Laptop',        keywords: ['computer', 'desktop', 'pc', 'workstation'], defaultSize: { w: 150, h: 110 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: laptop },
+    { id: 'arch-core:mobile',        packId: 'arch-core', label: 'Mobile',        keywords: ['phone', 'ios', 'android', 'tablet'],  defaultSize: { w: 80, h: 130 },  defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: mobile },
     { id: 'arch-core:iot',           packId: 'arch-core', label: 'IoT Device',    keywords: ['sensor', 'device', 'chip'], defaultSize: { w: 120, h: 120 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: '#0891b2' }, render: iot },
-    { id: 'arch-core:external',      packId: 'arch-core', label: 'External',      keywords: ['third-party', 'cloud', 'saas'], defaultSize: { w: 150, h: 130 }, defaultStyle: { fill: FILL_SOFT_BLUE,   borderColor: '#3b82f6' }, render: external },
+    { id: 'arch-core:user',          packId: 'arch-core', label: 'User',          keywords: ['person', 'persona', 'actor', 'human'], defaultSize: { w: 100, h: 130 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: userShape },
+    { id: 'arch-core:external',      packId: 'arch-core', label: 'External',      keywords: ['third-party', 'cloud', 'saas'], defaultSize: { w: 150, h: 110 }, defaultStyle: { fill: FILL_SOFT_BLUE,   borderColor: '#3b82f6' }, render: external },
   ],
 }

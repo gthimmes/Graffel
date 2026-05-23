@@ -58,16 +58,16 @@ v1 nodes used type strings like `'rectangle'`, `'service'`, etc. Loading an old 
 
 Path 1 (alias map) is simpler for v3.0 — no schema bump. The legacy ids continue to be valid `shapeId` strings; new files use the pack-qualified form. v3.x can collapse the alias once we're confident no users have stale `.graffel` files.
 
-### License stance on cloud icons
+### Icon policy: vendor-neutral concepts, not vendor-specific brands
 
-v3.1–v3.4 ship "stylized" cloud-vendor icons — recognizable silhouettes that evoke each service, with brand-appropriate colors (AWS orange, GCP multi-color, Azure cyan, K8s sky blue) — but authored ourselves, not bundled from the vendor packs.
+v3.1–v3.4 (now reverted) shipped per-vendor stylized icons (AWS, GCP, Azure, K8s). v3.5 reverses that stance after user feedback: vendor-specific stylized icons looked awkward, repeated the same shapes across packs (Lambda, Cloud Functions, Azure Functions all used the same λ glyph), and gave the false impression of being the official sets.
 
-**Why not the official packs?**
-- AWS / GCP / Azure / CNCF each publish "official" icon sets under licenses that vary by vendor. The terms typically allow use in diagrams but restrict modification, redistribution as a library, and inclusion in tools without attribution + a no-modification guarantee.
-- A clean integration would mean shipping each vendor's icon set untouched, with a credit page, and a license summary. Doable, but a tax on every release.
-- Stylized icons we author ourselves are legally trivial (no vendor IP) and small (~1KB SVG each).
+**v3.5 policy:**
+- One **Cloud** pack with concepts that are standard across the industry, not bound to any one vendor: Virtual Machine, Container, Container Cluster, Object Storage, Block Storage, Data Warehouse, Serverless Function, Event Bus, Identity Provider, Secrets Vault, Monitoring, VPN, Firewall, Region, Availability Zone, Internet.
+- **Kubernetes** pack stays — CNCF is an open standard, not a single-company brand.
+- **No duplicated icons across packs.** Each visual lives in exactly one pack. If the same concept exists at multiple abstraction levels (e.g., generic Function in Arch Core vs. Serverless Function in Cloud), the icons are visually distinct.
 
-**Off-ramp:** If a paying enterprise customer demands the exact official icons, we ship an "Official Icons" pack alongside ours. The `Pack` interface doesn't change.
+**Off-ramp:** If a customer ever asks for the actual vendor icon sets, we add a separate "Official Vendor Icons" plugin pack. The `Pack` interface doesn't change.
 
 ### Palette UX
 
