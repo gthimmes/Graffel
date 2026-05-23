@@ -4,6 +4,7 @@ import { BASIC_PACK } from './packs/basic'
 import { ARCH_CORE_PACK } from './packs/archCore'
 import { CLOUD_PACK } from './packs/cloud'
 import { K8S_PACK } from './packs/k8s'
+import { UML_PACK } from './packs/uml'
 
 /**
  * The pack manifest. Add new packs here. Order is the order they appear in the
@@ -14,6 +15,7 @@ export const PACKS: Pack[] = [
   ARCH_CORE_PACK,
   CLOUD_PACK,
   K8S_PACK,
+  UML_PACK,
 ]
 
 /**
