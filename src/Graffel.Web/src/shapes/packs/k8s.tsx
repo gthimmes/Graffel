@@ -156,23 +156,35 @@ const pictoPv = (c: string) => (
 
 const PACK_FILL = '#EDF2FE'
 
+/**
+ * Handle anchors that snap to the heptagon silhouette (vertices at top + bottom-pair
+ * midpoint, edge-midpoints on the sides). Without this, connection lines float far
+ * outside the visual heptagon at its bounding-box corners.
+ */
+const HEPTAGON_HANDLES = {
+  top:    { x: 50, y: 28 },
+  right:  { x: 72, y: 60 },
+  bottom: { x: 50, y: 78 },
+  left:   { x: 28, y: 60 },
+}
+
 export const K8S_PACK: Pack = {
   id: 'k8s',
   label: 'Kubernetes',
   description: 'Stylized icons inspired by the Kubernetes resource glyphs.',
   defaultEnabled: true,
   shapes: [
-    { id: 'k8s:pod',              packId: 'k8s', label: 'Pod',              keywords: ['workload'],          defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoPod) },
-    { id: 'k8s:service',          packId: 'k8s', label: 'Service',          keywords: ['svc', 'network'],    defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoSvc) },
-    { id: 'k8s:ingress',          packId: 'k8s', label: 'Ingress',          keywords: ['gateway', 'router'], defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoIngress) },
-    { id: 'k8s:deployment',       packId: 'k8s', label: 'Deployment',       keywords: ['workload', 'rs'],    defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoDeployment) },
-    { id: 'k8s:statefulset',      packId: 'k8s', label: 'StatefulSet',      keywords: ['stateful', 'sts'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoStatefulSet) },
-    { id: 'k8s:daemonset',        packId: 'k8s', label: 'DaemonSet',        keywords: ['daemon', 'ds'],      defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoDaemonSet) },
-    { id: 'k8s:job',              packId: 'k8s', label: 'Job',              keywords: ['batch'],             defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoJob) },
-    { id: 'k8s:cronjob',          packId: 'k8s', label: 'CronJob',          keywords: ['cron', 'schedule'],  defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoCronJob) },
-    { id: 'k8s:configmap',        packId: 'k8s', label: 'ConfigMap',        keywords: ['config', 'cm'],      defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoConfigMap) },
-    { id: 'k8s:secret',           packId: 'k8s', label: 'Secret',           keywords: ['secret', 'creds'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE_DARK }, render: k(pictoSecret) },
-    { id: 'k8s:namespace',        packId: 'k8s', label: 'Namespace',        keywords: ['ns', 'isolation'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoNamespace) },
-    { id: 'k8s:pv',               packId: 'k8s', label: 'PersistentVolume', keywords: ['volume', 'pv', 'pvc'], defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, render: k(pictoPv) },
+    { id: 'k8s:pod',              packId: 'k8s', label: 'Pod',              keywords: ['workload'],          defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoPod) },
+    { id: 'k8s:service',          packId: 'k8s', label: 'Service',          keywords: ['svc', 'network'],    defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoSvc) },
+    { id: 'k8s:ingress',          packId: 'k8s', label: 'Ingress',          keywords: ['gateway', 'router'], defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoIngress) },
+    { id: 'k8s:deployment',       packId: 'k8s', label: 'Deployment',       keywords: ['workload', 'rs'],    defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoDeployment) },
+    { id: 'k8s:statefulset',      packId: 'k8s', label: 'StatefulSet',      keywords: ['stateful', 'sts'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoStatefulSet) },
+    { id: 'k8s:daemonset',        packId: 'k8s', label: 'DaemonSet',        keywords: ['daemon', 'ds'],      defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoDaemonSet) },
+    { id: 'k8s:job',              packId: 'k8s', label: 'Job',              keywords: ['batch'],             defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoJob) },
+    { id: 'k8s:cronjob',          packId: 'k8s', label: 'CronJob',          keywords: ['cron', 'schedule'],  defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoCronJob) },
+    { id: 'k8s:configmap',        packId: 'k8s', label: 'ConfigMap',        keywords: ['config', 'cm'],      defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoConfigMap) },
+    { id: 'k8s:secret',           packId: 'k8s', label: 'Secret',           keywords: ['secret', 'creds'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE_DARK }, handlePositions: HEPTAGON_HANDLES, render: k(pictoSecret) },
+    { id: 'k8s:namespace',        packId: 'k8s', label: 'Namespace',        keywords: ['ns', 'isolation'],   defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoNamespace) },
+    { id: 'k8s:pv',               packId: 'k8s', label: 'PersistentVolume', keywords: ['volume', 'pv', 'pvc'], defaultSize: { w: 110, h: 110 }, defaultStyle: { fill: PACK_FILL, borderColor: K8S_BLUE }, handlePositions: HEPTAGON_HANDLES, render: k(pictoPv) },
   ],
 }

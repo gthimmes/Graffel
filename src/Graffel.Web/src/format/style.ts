@@ -41,7 +41,40 @@ export interface NodeStyle {
   borderColor?: string       // CSS color
 }
 
+export type StrokeStyle = 'solid' | 'dashed' | 'dotted'
+
+export type EdgeMarker =
+  | 'none'
+  | 'arrow'          // filled triangle
+  | 'arrow-open'     // V-shape, no fill
+  | 'triangle'       // open triangle (UML generalization)
+  | 'triangle-filled'
+  | 'diamond'        // open diamond (UML aggregation)
+  | 'diamond-filled' // filled diamond (UML composition)
+  | 'circle'         // open circle
+  | 'circle-filled'
+
+export type MarkerSize = 'sm' | 'md' | 'lg'
+
 export interface EdgeStyle {
   strokeColor?: string
   strokeWidth?: number
+  strokeStyle?: StrokeStyle
+  markerStart?: EdgeMarker
+  markerEnd?: EdgeMarker
+  markerSize?: MarkerSize
+}
+
+/** SVG stroke-dasharray pattern for each style. */
+export function strokeDashArray(style: StrokeStyle | undefined): string | undefined {
+  if (style === 'dashed') return '8 4'
+  if (style === 'dotted') return '2 4'
+  return undefined
+}
+
+/** Marker scale by size token. */
+export function markerSizePx(size: MarkerSize | undefined): number {
+  if (size === 'sm') return 5
+  if (size === 'lg') return 9
+  return 7
 }

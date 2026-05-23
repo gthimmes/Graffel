@@ -108,12 +108,22 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
         </div>
 
         {/* Connection handles — only when editable */}
-        {!readOnly && HANDLE_POSITIONS.map(({ id: hid, position }) => (
-          <Handle key={hid} id={hid} type="source" position={position} isConnectable />
-        ))}
-        {!readOnly && HANDLE_POSITIONS.map(({ id: hid, position }) => (
-          <Handle key={`t-${hid}`} id={hid} type="target" position={position} isConnectable style={{ opacity: 0 }} />
-        ))}
+        {!readOnly && HANDLE_POSITIONS.map(({ id: hid, position }) => {
+          const anchor = def?.handlePositions?.[hid]
+          const style = anchor ? { left: `${anchor.x}%`, top: `${anchor.y}%` } : undefined
+          return (
+            <Handle key={hid} id={hid} type="source" position={position} isConnectable style={style} />
+          )
+        })}
+        {!readOnly && HANDLE_POSITIONS.map(({ id: hid, position }) => {
+          const anchor = def?.handlePositions?.[hid]
+          const style: React.CSSProperties = anchor
+            ? { left: `${anchor.x}%`, top: `${anchor.y}%`, opacity: 0 }
+            : { opacity: 0 }
+          return (
+            <Handle key={`t-${hid}`} id={hid} type="target" position={position} isConnectable style={style} />
+          )
+        })}
 
         {/* Text overlay */}
         <div

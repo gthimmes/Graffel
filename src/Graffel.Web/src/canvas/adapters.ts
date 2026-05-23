@@ -7,7 +7,8 @@ import type {
   GraffelNode,
   HandleSide,
 } from '../format/types'
-import type { EdgeStyle } from '../format/style'
+import { strokeDashArray, type EdgeStyle } from '../format/style'
+import { markerRef } from './EdgeMarkers'
 
 export function toReactFlowNode(n: GraffelNode): RFNode {
   return {
@@ -45,7 +46,10 @@ export function toReactFlowEdge(e: GraffelEdge): RFEdge {
     style: {
       stroke: s.strokeColor,
       strokeWidth: s.strokeWidth,
+      strokeDasharray: strokeDashArray(s.strokeStyle),
     },
+    markerStart: markerRef(s.markerStart, s.markerSize, 'start'),
+    markerEnd:   markerRef(s.markerEnd,   s.markerSize, 'end'),
   }
 }
 

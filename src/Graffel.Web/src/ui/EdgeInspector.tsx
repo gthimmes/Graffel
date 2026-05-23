@@ -1,5 +1,10 @@
 import { useDiagramStore } from '../store/diagramStore'
-import type { EdgeStyle } from '../format/style'
+import type {
+  EdgeMarker,
+  EdgeStyle,
+  MarkerSize,
+  StrokeStyle,
+} from '../format/style'
 import type { EdgeType } from '../format/types'
 import { ColorPicker, Field, Group, Row, Segmented } from './controls'
 
@@ -86,7 +91,68 @@ export function EdgeInspector({ edgeId }: { edgeId: string }) {
               data-testid="ei-stroke-width"
             />
           </Field>
+          <Field label="Style">
+            <Segmented<StrokeStyle>
+              testId="ei-stroke-style"
+              value={style.strokeStyle ?? 'solid'}
+              onChange={(v) => updateEdgeStyle(edgeId, { strokeStyle: v })}
+              options={[
+                { value: 'solid',  label: '────' },
+                { value: 'dashed', label: '─ ─' },
+                { value: 'dotted', label: '· · ·' },
+              ]}
+            />
+          </Field>
         </Row>
+      </Group>
+
+      <Group title="Endpoints">
+        <Field label="Start">
+          <select
+            value={style.markerStart ?? 'none'}
+            onChange={(e) => updateEdgeStyle(edgeId, { markerStart: e.target.value as EdgeMarker })}
+            data-testid="ei-marker-start"
+          >
+            <option value="none">None</option>
+            <option value="arrow">Arrow (filled)</option>
+            <option value="arrow-open">Arrow (open)</option>
+            <option value="triangle">Triangle (open)</option>
+            <option value="triangle-filled">Triangle (filled)</option>
+            <option value="diamond">Diamond (open)</option>
+            <option value="diamond-filled">Diamond (filled)</option>
+            <option value="circle">Circle (open)</option>
+            <option value="circle-filled">Circle (filled)</option>
+          </select>
+        </Field>
+        <Field label="End">
+          <select
+            value={style.markerEnd ?? 'none'}
+            onChange={(e) => updateEdgeStyle(edgeId, { markerEnd: e.target.value as EdgeMarker })}
+            data-testid="ei-marker-end"
+          >
+            <option value="none">None</option>
+            <option value="arrow">Arrow (filled)</option>
+            <option value="arrow-open">Arrow (open)</option>
+            <option value="triangle">Triangle (open)</option>
+            <option value="triangle-filled">Triangle (filled)</option>
+            <option value="diamond">Diamond (open)</option>
+            <option value="diamond-filled">Diamond (filled)</option>
+            <option value="circle">Circle (open)</option>
+            <option value="circle-filled">Circle (filled)</option>
+          </select>
+        </Field>
+        <Field label="Marker size">
+          <Segmented<MarkerSize>
+            testId="ei-marker-size"
+            value={style.markerSize ?? 'md'}
+            onChange={(v) => updateEdgeStyle(edgeId, { markerSize: v })}
+            options={[
+              { value: 'sm', label: 'S' },
+              { value: 'md', label: 'M' },
+              { value: 'lg', label: 'L' },
+            ]}
+          />
+        </Field>
       </Group>
     </div>
   )

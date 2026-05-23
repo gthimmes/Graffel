@@ -34,6 +34,18 @@ export interface ShapeDef {
   labelPlacement?: 'overlay' | 'below'
   /** Optional short test id for E2E specs that predate pack-qualified ids (e.g. 'service'). */
   legacyTestId?: string
+  /**
+   * Per-side handle anchor points in 0–100 normalized coords. When set, the
+   * four connection handles snap to the visual silhouette instead of the
+   * bounding-box edges. Default (when absent): {top:(50,0), right:(100,50),
+   * bottom:(50,100), left:(0,50)}.
+   */
+  handlePositions?: {
+    top?:    { x: number; y: number }
+    right?:  { x: number; y: number }
+    bottom?: { x: number; y: number }
+    left?:   { x: number; y: number }
+  }
 }
 
 export interface Pack {

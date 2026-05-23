@@ -22,6 +22,7 @@ import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
 import { EdgeContextMenu } from './EdgeContextMenu'
 import { useEdgeMenuStore } from './edgeMenuStore'
+import { EdgeMarkerDefs } from './EdgeMarkers'
 import { useUiStore } from '../ui/CommandPalette'
 
 const nodeTypes = { shape: ShapeNode }
@@ -253,6 +254,7 @@ export function DiagramCanvas() {
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
     >
+      <EdgeMarkerDefs />
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
