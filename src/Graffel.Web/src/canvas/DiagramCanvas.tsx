@@ -11,10 +11,12 @@ import {
   type OnEdgesChange,
   type OnNodesChange,
 } from '@xyflow/react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import {
   loadFromLocalStorage,
+  loadSnapGrid,
+  saveSnapGrid,
   saveToLocalStorage,
 } from '../store/persistence'
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
@@ -24,6 +26,8 @@ import { EdgeContextMenu } from './EdgeContextMenu'
 import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
 import { useUiStore } from '../ui/CommandPalette'
+import { AlignmentGuides } from './AlignmentGuides'
+import { computeSnap, GRID_SIZE, type Guide, type IdRect } from './snap'
 
 const nodeTypes = { shape: ShapeNode }
 const edgeTypes = { waypoint: WaypointEdge }
@@ -67,15 +71,54 @@ export function DiagramCanvas() {
   const duplicateNodes = useDiagramStore((s) => s.duplicateNodes)
   const nudgeNodes = useDiagramStore((s) => s.nudgeNodes)
 
-  const { screenToFlowPosition } = useReactFlow()
+  const rf = useReactFlow()
+  const { screenToFlowPosition } = rf
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Expose flow↔screen helpers to Playwright so E2E can compute precise
+  // drag targets regardless of zoom/translate.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ;(window as unknown as Record<string, unknown>).__graffelRf = {
+        getViewport: () => rf.getViewport(),
+        flowToScreen: (p: { x: number; y: number }) => {
+          const v = rf.getViewport()
+          // Map a flow point to a viewport-local position; the test layers on
+          // the canvas-host's screen offset.
+          return { x: p.x * v.zoom + v.x, y: p.y * v.zoom + v.y }
+        },
+      }
+    }
+  }, [rf])
   // Track the latest cursor position in flow coordinates for keyboard quick-insert.
   const lastCursorFlow = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  // v3.9 alignment guides — ephemeral, only during a drag.
+  const [activeGuides, setActiveGuides] = useState<Guide[]>([])
+  // Expose the live count to window so Playwright can introspect.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ;(window as unknown as Record<string, unknown>).__graffelGuides = activeGuides
+    }
+  }, [activeGuides])
+  // Track Alt key for snap-disable during a drag.
+  const altDownRef = useRef(false)
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Alt') altDownRef.current = true }
+    const onUp   = (e: KeyboardEvent) => { if (e.key === 'Alt') altDownRef.current = false }
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+    }
+  }, [])
 
   // Hydrate from localStorage on mount.
   useEffect(() => {
     const doc = loadFromLocalStorage()
     if (doc) loadDocument(doc)
+    useDiagramStore.getState().setSnapGrid(loadSnapGrid())
   }, [loadDocument])
 
   // Autosave on store changes (debounced).
@@ -86,12 +129,44 @@ export function DiagramCanvas() {
     return () => window.clearTimeout(t)
   }, [nodes, edges, toDocument])
 
+  // Persist the grid-snap preference whenever it changes.
+  const snapGrid = useDiagramStore((s) => s.snapGrid)
+  useEffect(() => { saveSnapGrid(snapGrid) }, [snapGrid])
+
   const onNodesChange: OnNodesChange = useCallback((changes) => {
+    let nextGuides: Guide[] | null = null
+    let stillDragging = false
     for (const change of changes as NodeChange[]) {
-      if (change.type === 'position' && change.position && !change.dragging) {
-        updateNodePosition(change.id, change.position)
-      } else if (change.type === 'position' && change.position) {
-        // live drag — still update so save reflects current
+      if (change.type === 'position' && change.position) {
+        const state = useDiagramStore.getState()
+        const dragged = state.nodes.find((n) => n.id === change.id)
+        if (dragged) {
+          const others: IdRect[] = state.nodes
+            .filter((n) => n.id !== change.id)
+            .map((n) => ({
+              id: n.id,
+              x: n.position.x,
+              y: n.position.y,
+              w: n.size.w,
+              h: n.size.h,
+            }))
+          const snapped = computeSnap({
+            draggedRect: {
+              x: change.position.x,
+              y: change.position.y,
+              w: dragged.size.w,
+              h: dragged.size.h,
+            },
+            otherRects: others,
+            gridSize: state.snapGrid ? GRID_SIZE : null,
+            disabled: altDownRef.current,
+          })
+          change.position = snapped.position
+          if (change.dragging) {
+            nextGuides = snapped.guides
+            stillDragging = true
+          }
+        }
         updateNodePosition(change.id, change.position)
       } else if (change.type === 'select') {
         const current = useDiagramStore.getState().selectedNodeIds
@@ -103,6 +178,12 @@ export function DiagramCanvas() {
         selectNodes([change.id])
         removeSelection()
       }
+    }
+    // Show guides only while dragging; clear on drop or any non-drag change.
+    if (stillDragging && nextGuides) {
+      setActiveGuides(nextGuides)
+    } else if (changes.some((c) => c.type === 'position' && !c.dragging)) {
+      setActiveGuides([])
     }
   }, [updateNodePosition, selectNodes, removeSelection])
 
@@ -194,6 +275,14 @@ export function DiagramCanvas() {
         return
       }
 
+      // Toggle grid snap (Cmd/Ctrl+;).
+      if (mod && e.key === ';') {
+        e.preventDefault()
+        const s = useDiagramStore.getState()
+        s.setSnapGrid(!s.snapGrid)
+        return
+      }
+
       // Duplicate.
       if (mod && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault()
@@ -272,6 +361,7 @@ export function DiagramCanvas() {
         <Background gap={16} size={1} />
         <Controls />
         <MiniMap pannable zoomable />
+        <AlignmentGuides guides={activeGuides} />
       </ReactFlow>
       {edgeMenu ? (
         <EdgeContextMenu

@@ -128,12 +128,15 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v2.0 accounts — Google OAuth sign-in foundation. See [ADR-0007](./adr/0007-auth-google-oauth.md).
 - **Shipped:** v2.1 Drive save/open — backend-proxied Drive calls. See [ADR-0008](./adr/0008-google-drive-integration.md).
 - **Shipped:** v2.2 share-by-link view-only — snapshot share links. See [ADR-0009](./adr/0009-share-by-link.md). **v2 PRD complete.**
-- **In progress:** v3.0 shape library + connector polish — pack-based shape registry, redesigned palette, library manager, right-click connector menu. See [ADR-0010](./adr/0010-shape-library.md).
-- **Next:** v3.1 AWS pack, v3.2 GCP pack, v3.3 Azure pack, v3.4 Kubernetes pack — each its own commit.
-- **Later (low confidence on timing):** realtime multiplayer (was v3; renumbering deferred — call it "v4" mentally).
-- **Later:** v3 — realtime multiplayer.
-- **Later:** v2 — accounts, Google Drive save/open, share-by-link view-only. Gate: v1.x shows engagement signal.
-- **Later (low confidence on timing):** v3 — realtime multiplayer. Gate: v2 has a user base that asks for it.
+- **Shipped:** v3.0 shape library foundation + connector right-click menu. See [ADR-0010](./adr/0010-shape-library.md).
+- **Shipped:** v3.1–v3.4 vendor packs (AWS / GCP / Azure / Kubernetes). Reversed in v3.5 — see ADR-0010 §"Icon policy".
+- **Shipped:** v3.5 Vendor-neutral Cloud pack (16 industry-standard concepts); Arch Core de-vendor pass.
+- **Shipped:** v3.6 UML pack — 12 UML 2.x primitives.
+- **Shipped:** v3.7 Flowchart & User Flow pack — 16 shapes.
+- **Shipped:** v3.8 Connector polish — line styles (dashed/dotted), endpoint markers (8 styles × 3 sizes), silhouette-anchored handles.
+- **Shipped:** v3.9 Alignment guides + snap-to-shape + opt-in 8 px grid snap. See [ADR-0011](./adr/0011-alignment-snapping.md).
+- **Next:** v3.9.1 fast-follow — equal-spacing snap (gap-equalizer with double-tick indicators).
+- **Later (low confidence on timing):** v4 — realtime multiplayer. Gate: v3.x has a user base that asks for it.
 
 Not a commitment with dates. Now/next/later, not Q3/Q4/Q1.
 
@@ -361,14 +364,45 @@ Also: ADR-0004 (v1.2) gave users explicit waypoint placement. Users now want a o
 
 ---
 
-## v3.1 — AWS pack (next)
-~20 of the most-used AWS services. Same `Pack` shape; drops into the existing registry with no UI changes.
+## v3.1–v3.4 — vendor packs (shipped, then superseded)
+v3.1 AWS, v3.2 GCP, v3.3 Azure, v3.4 Kubernetes shipped as stylized per-vendor icon sets. v3.5 reversed three of them after user feedback (see ADR-0010 §"Icon policy"). Only the Kubernetes pack survived — CNCF is an open standard, not a single-vendor brand.
 
-## v3.2 — GCP pack
-~15 GCP services.
+## v3.5 — Vendor-neutral Cloud pack (shipped)
+One **Cloud** pack with 16 concepts standard across the industry (Virtual Machine, Container, Object Storage, Serverless Function, etc.) plus an Arch Core de-vendor pass (no rain glyphs, no lambda symbols). Establishes the "icon policy" that future packs follow.
 
-## v3.3 — Azure pack
-~15 Azure services.
+## v3.6 — UML pack (shipped)
+12 UML 2.x primitives (Class, Interface, Actor, Use Case, etc.).
 
-## v3.4 — Kubernetes pack
-~12 K8s resources. After v3.4 lands, "v3 shape library" is fully shipped.
+## v3.7 — Flowchart & User Flow pack (shipped)
+16 shapes for swimlanes, decisions, terminators, and user-flow primitives.
+
+## v3.8 — Connector polish (shipped)
+Three improvements to how connectors look and connect:
+1. **Line styles** — solid / dashed / dotted via `edge.data.style.strokeStyle`.
+2. **Endpoint markers** — arrow (filled / open), triangle, diamond, circle, all filled and outline variants; `markerSize` small/medium/large. 48 marker variants in one shared `<defs>` block.
+3. **Silhouette anchors** — connection handles snap to the visual edge of cylinders, diamonds, circles, and heptagons instead of the bounding-box corners.
+
+## v3.9 — Alignment guides + snap (shipped)
+
+**Why this slice.** Connectors look right and shapes look right; the remaining "feels old" gap is what happens *between* shapes. Drag-time alignment guides + snap-to-shape close that gap with one focused, geometry-only slice.
+
+**Scope.** See [ADR-0011](./adr/0011-alignment-snapping.md):
+- Edge↔edge and center↔center snap within 4 px; centers beat edges on tie. One cyan (center) or magenta (edge) guide line per fired axis, spanning the dragged rect and every other rect sharing the snapped position.
+- Opt-in 8 px grid snap toggled via toolbar (⌗ Grid button) or `Cmd/Ctrl+;`. Persisted to localStorage `graffel.snapGrid.v1`.
+- Hold `Alt` during a drag → snap suppressed for that drag.
+- Guides are ephemeral — never written to `.graffel`.
+
+**Non-goals for v3.9 (fast-follow candidates):**
+- Equal-spacing snap (gap-equalizer) — deferred to v3.9.1.
+- Multi-node-drag snap.
+- Snap on resize (only on move).
+- Align / Distribute toolbar actions.
+
+**Goals:**
+- Time-to-aligned-pair: under 2 seconds with no keyboard precision work.
+- Snap geometry is pure / unit-tested — 19 unit tests in `snap.test.ts`.
+- A drag near alignment is provably end-to-end snapped: 3 Playwright specs cover toolbar persistence, keyboard toggle, and drag-with-guide.
+
+**Hand-offs:**
+- Engineer: TDD on `snap.ts` first; then wire into `onNodesChange`; then `AlignmentGuides` overlay.
+- QA: cover the toggle persistence, the keyboard shortcut, and a drag that produces both a visible guide mid-drag and a snapped position in the store.

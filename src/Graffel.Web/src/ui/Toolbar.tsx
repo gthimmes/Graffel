@@ -34,6 +34,8 @@ export function Toolbar() {
   // canUndo/canRedo are functions; subscribe to the history slice directly to re-render.
   const pastLen = useDiagramStore((s) => s._past.length)
   const futureLen = useDiagramStore((s) => s._future.length)
+  const snapGrid = useDiagramStore((s) => s.snapGrid)
+  const setSnapGrid = useDiagramStore((s) => s.setSnapGrid)
   const fileInput = useRef<HTMLInputElement>(null)
 
   function safeFilename(base: string): string {
@@ -104,6 +106,14 @@ export function Toolbar() {
         title="Redo (Cmd/Ctrl+Shift+Z)"
         data-testid="action-redo"
       >↷ Redo</button>
+      <button
+        type="button"
+        onClick={() => setSnapGrid(!snapGrid)}
+        title="Snap to grid (Cmd/Ctrl+;)"
+        aria-pressed={snapGrid}
+        data-testid="action-snap-grid"
+        className={snapGrid ? 'toolbar-toggle on' : 'toolbar-toggle'}
+      >⌗ Grid</button>
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>

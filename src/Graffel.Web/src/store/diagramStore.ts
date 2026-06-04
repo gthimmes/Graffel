@@ -36,6 +36,8 @@ interface DiagramState {
   driveFileId: string | null
   /** When true (v2.2 shared view), mutating actions are silently no-op. */
   readOnly: boolean
+  /** v3.9: grid-snap toggle. False by default; persisted via localStorage hook. */
+  snapGrid: boolean
 
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
@@ -69,6 +71,7 @@ interface DiagramState {
   setTitle: (title: string) => void
   setDriveFileId: (id: string | null) => void
   setReadOnly: (value: boolean) => void
+  setSnapGrid: (value: boolean) => void
 
   // History API
   undo: () => void
@@ -83,7 +86,7 @@ interface DiagramState {
 
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
-  | 'documentId' | 'title' | 'driveFileId' | 'readOnly'
+  | 'documentId' | 'title' | 'driveFileId' | 'readOnly' | 'snapGrid'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -96,6 +99,7 @@ function emptyState(): Pick<DiagramState,
     title: doc.metadata.title,
     driveFileId: null,
     readOnly: false,
+    snapGrid: false,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -354,6 +358,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
 
     setDriveFileId(id) { set({ driveFileId: id }) },
     setReadOnly(value) { set({ readOnly: value }) },
+    setSnapGrid(value) { set({ snapGrid: value }) },
 
     undo() {
       const s = get()

@@ -5,6 +5,7 @@ import {
 import type { GraffelDocument } from '../format/types'
 
 export const LOCAL_STORAGE_KEY = 'graffel.currentDocument.v1'
+export const SNAP_GRID_KEY = 'graffel.snapGrid.v1'
 
 export function saveToLocalStorage(doc: GraffelDocument): void {
   try {
@@ -23,4 +24,16 @@ export function loadFromLocalStorage(): GraffelDocument | null {
     localStorage.removeItem(LOCAL_STORAGE_KEY)
     return null
   }
+}
+
+export function saveSnapGrid(value: boolean): void {
+  try {
+    localStorage.setItem(SNAP_GRID_KEY, value ? '1' : '0')
+  } catch {
+    // ignore — preference is non-essential
+  }
+}
+
+export function loadSnapGrid(): boolean {
+  return localStorage.getItem(SNAP_GRID_KEY) === '1'
 }
