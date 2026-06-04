@@ -2,13 +2,21 @@ import { describe, expect, it } from 'vitest'
 import {
   computeSnap,
   GRID_SIZE,
+  ROW_TOLERANCE,
   SNAP_THRESHOLD,
+  type Guide,
   type IdRect,
 } from './snap'
 
 // Rect helper: build an IdRect from x,y,w,h.
 function r(id: string, x: number, y: number, w = 100, h = 60): IdRect {
   return { id, x, y, w, h }
+}
+
+// Narrow Guide to the alignment variant so .position/.range are accessible.
+type AlignGuide = Extract<Guide, { kind: 'edge' | 'center' }>
+function isAlign(g: Guide): g is AlignGuide {
+  return g.kind !== 'spacing'
 }
 
 describe('computeSnap', () => {
@@ -52,7 +60,7 @@ describe('computeSnap', () => {
       expect(result.offset.x).toBe(-2)
       expect(result.position.x).toBe(200)
       // One vertical guide at x=200, spanning both rects vertically.
-      const xGuides = result.guides.filter((g) => g.axis === 'x')
+      const xGuides = result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'x')
       expect(xGuides).toHaveLength(1)
       expect(xGuides[0]!.position).toBe(200)
       expect(xGuides[0]!.kind).toBe('edge')
@@ -80,7 +88,7 @@ describe('computeSnap', () => {
         otherRects: [other],
       })
       expect(result.offset.y).toBe(3)
-      const yGuides = result.guides.filter((g) => g.axis === 'y')
+      const yGuides = result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'y')
       expect(yGuides).toHaveLength(1)
       expect(yGuides[0]!.position).toBe(200)
       expect(yGuides[0]!.kind).toBe('edge')
@@ -109,7 +117,7 @@ describe('computeSnap', () => {
       })
       expect(result.offset.x).toBe(-2)
       expect(result.position.x).toBe(200)
-      const xGuides = result.guides.filter((g) => g.axis === 'x')
+      const xGuides = result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'x')
       expect(xGuides).toHaveLength(1)
       expect(xGuides[0]!.position).toBe(250)
       expect(xGuides[0]!.kind).toBe('center')
@@ -149,7 +157,7 @@ describe('computeSnap', () => {
       // The candidate is right(200) vs dragged center(198+2=200). It's an edge↔center
       // candidate; semantically the guide is drawn at the matched line, kind labels
       // whether the *dragged* side is a center or an edge. Center wins the kind.
-      const xGuides = result.guides.filter((g) => g.axis === 'x')
+      const xGuides = result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'x')
       expect(xGuides[0]!.position).toBe(200)
       expect(xGuides[0]!.kind).toBe('center')
     })
@@ -166,7 +174,7 @@ describe('computeSnap', () => {
         otherRects: [a, b],
       })
       expect(result.offset.x).toBe(-3)
-      const xGuides = result.guides.filter((g) => g.axis === 'x' && g.position === 200)
+      const xGuides = result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'x' && g.position === 200)
       expect(xGuides).toHaveLength(1)
       // Vertical extent should cover all three rects (dragged + both others).
       expect(xGuides[0]!.range[0]).toBe(100)   // a.y (topmost)
@@ -182,8 +190,8 @@ describe('computeSnap', () => {
         otherRects: [a, b],
       })
       expect(result.offset).toEqual({ x: -3, y: 3 })
-      expect(result.guides.some((g) => g.axis === 'x' && g.position === 200)).toBe(true)
-      expect(result.guides.some((g) => g.axis === 'y' && g.position === 300)).toBe(true)
+      expect(result.guides.some((g) => isAlign(g) && g.axis === 'x' && g.position === 200)).toBe(true)
+      expect(result.guides.some((g) => isAlign(g) && g.axis === 'y' && g.position === 300)).toBe(true)
     })
 
     it('picks the smaller delta when multiple candidates fire on the same axis', () => {
@@ -251,8 +259,8 @@ describe('computeSnap', () => {
       })
       expect(result.position.x).toBe(245)  // alignment, not grid (248)
       expect(result.position.y).toBe(208)  // grid, no alignment
-      expect(result.guides.filter((g) => g.axis === 'x')).toHaveLength(1)
-      expect(result.guides.filter((g) => g.axis === 'y')).toHaveLength(0)
+      expect(result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'x')).toHaveLength(1)
+      expect(result.guides.filter((g): g is AlignGuide => isAlign(g) && g.axis === 'y')).toHaveLength(0)
     })
 
     it('gridSize=null leaves position unsnapped when no alignment fires', () => {
@@ -281,6 +289,142 @@ describe('computeSnap', () => {
         threshold: 8,
       })
       expect(loose.offset.x).toBe(-7)
+    })
+  })
+
+  describe('equal-spacing (v3.9.1)', () => {
+    it(`exposes ROW_TOLERANCE = ${ROW_TOLERANCE}px (twice the snap threshold)`, () => {
+      expect(ROW_TOLERANCE).toBe(8)
+    })
+
+    it('snaps a dragged node to equalize horizontal gaps between two row-aligned neighbors', () => {
+      // A and C are row-aligned (same centerY); B is being dragged into the gap
+      // and is slightly off-center (Gap1=97, Gap2=103 — delta to equalize is 3 px).
+      const A = r('A',   0, 100, 100, 60)   // right=100,  centerY=130
+      const C = r('C', 400, 100, 100, 60)   // left=400,   centerY=130
+      const result = computeSnap({
+        draggedRect: { x: 197, y: 100, w: 100, h: 60 },  // left=197, right=297, centerY=130
+        otherRects: [A, C],
+      })
+      // To equalize the two 97/103 gaps, B must move +3 px on x.
+      expect(result.offset).toEqual({ x: 3, y: 0 })
+      expect(result.position).toEqual({ x: 200, y: 100 })
+
+      // Two spacing guides emit — one per gap, axis='x', median centerY=130.
+      const spacing = result.guides.filter((g): g is Extract<Guide, { kind: 'spacing' }> => g.kind === 'spacing')
+      expect(spacing).toHaveLength(2)
+      const axes = new Set(spacing.map((g) => g.axis))
+      expect(axes).toEqual(new Set(['x']))
+      const perps = new Set(spacing.map((g) => g.perpendicular))
+      expect(perps).toEqual(new Set([130]))
+      // Spans cover the two gaps in flow space (A.right..B.left and B.right..C.left
+      // after B has moved to x=200).
+      const spans = spacing.map((g) => g.span).sort((a, b) => a[0] - b[0])
+      expect(spans).toEqual([[100, 200], [300, 400]])
+    })
+
+    it('snaps to equalize vertical gaps between two column-aligned neighbors', () => {
+      // Mirror of the horizontal case: A above, C below, B being dragged.
+      const A = r('A', 100,   0, 100, 60)   // bottom=60,  centerX=150
+      const C = r('C', 100, 400, 100, 60)   // top=400,    centerX=150
+      const result = computeSnap({
+        draggedRect: { x: 100, y: 197, w: 100, h: 60 },  // top=197, bottom=257, centerX=150
+        otherRects: [A, C],
+      })
+      expect(result.offset).toEqual({ x: 0, y: 3 })
+      expect(result.position).toEqual({ x: 100, y: 200 })
+      const spacing = result.guides.filter((g): g is Extract<Guide, { kind: 'spacing' }> => g.kind === 'spacing')
+      expect(spacing).toHaveLength(2)
+      expect(new Set(spacing.map((g) => g.axis))).toEqual(new Set(['y']))
+      expect(new Set(spacing.map((g) => g.perpendicular))).toEqual(new Set([150]))
+    })
+
+    it('does not fire when row alignment is broken (centerY spread > ROW_TOLERANCE)', () => {
+      // A and C row-aligned at centerY=130, but B is far off vertically.
+      const A = r('A',   0, 100, 100, 60)
+      const C = r('C', 400, 100, 100, 60)
+      const result = computeSnap({
+        draggedRect: { x: 197, y: 200, w: 100, h: 60 },  // centerY=230 (spread=100)
+        otherRects: [A, C],
+      })
+      // No equal-spacing fires; no edge/center fires either (B far from A/C).
+      // Note: y has no candidates and x has no edge/center matches.
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(false)
+    })
+
+    it('fires when row alignment is just within tolerance', () => {
+      // A at centerY=130, C at centerY=130, B at centerY=134 (spread=4, within 8).
+      const A = r('A',   0, 100, 100, 60)
+      const C = r('C', 400, 100, 100, 60)
+      const result = computeSnap({
+        draggedRect: { x: 197, y: 104, w: 100, h: 60 },  // centerY = 104+30 = 134
+        otherRects: [A, C],
+      })
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(true)
+    })
+
+    it('does not fire when only one neighbor exists on the axis', () => {
+      // Only A — no C to B's right. Equal-spacing needs two.
+      const A = r('A', 0, 100, 100, 60)
+      const result = computeSnap({
+        draggedRect: { x: 300, y: 100, w: 100, h: 60 },
+        otherRects: [A],
+      })
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(false)
+    })
+
+    it('is order-invariant: works when "right" neighbor is given first in otherRects', () => {
+      const A = r('A',   0, 100, 100, 60)
+      const C = r('C', 400, 100, 100, 60)
+      const swapped = computeSnap({
+        draggedRect: { x: 197, y: 100, w: 100, h: 60 },
+        otherRects: [C, A],   // C before A
+      })
+      expect(swapped.offset.x).toBe(3)
+    })
+
+    it('does not fire when the gap difference exceeds the snap threshold', () => {
+      // Gap1 = 60, Gap2 = 130 — delta would be (130-60)/2 = 35, far past threshold.
+      const A = r('A',   0, 100, 100, 60)
+      const C = r('C', 400, 100, 100, 60)
+      const result = computeSnap({
+        draggedRect: { x: 160, y: 100, w: 100, h: 60 },  // left=160, right=260
+        otherRects: [A, C],
+      })
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(false)
+    })
+
+    it('does not fire when the dragged rect overlaps a neighbor', () => {
+      // A at x=0..100, B at x=80..180 overlaps A on x. No clean "gap".
+      const A = r('A',   0, 100, 100, 60)
+      const C = r('C', 400, 100, 100, 60)
+      const result = computeSnap({
+        draggedRect: { x: 80, y: 100, w: 100, h: 60 },
+        otherRects: [A, C],
+      })
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(false)
+    })
+
+    it('edge/center alignment beats equal-spacing on a tie at the same |delta|', () => {
+      // Construct a case where both center-alignment (on x) and equal-spacing
+      // would fire with |delta|=3. Edge/center wins → kind='center', not 'spacing'.
+      // A and C row-aligned for spacing; D placed so dragged.centerX aligns with
+      // D.centerX at the same delta.
+      const A = r('A',   0, 100, 100, 60)        // right=100, centerY=130
+      const C = r('C', 400, 100, 100, 60)        // left=400,  centerY=130
+      // Dragged at (197, 100, 100, 60) → equalize requires +3.
+      // D at centerX = 247+3 = 250 → x=200, w=100 (centerX=250). Dragged centerX=247.
+      // dragged.centerX(247) → D.centerX(250): delta=+3. Edge/center candidate.
+      const D = r('D', 200, 400, 100, 60)        // centerX=250 (well below the row)
+      const result = computeSnap({
+        draggedRect: { x: 197, y: 100, w: 100, h: 60 },
+        otherRects: [A, C, D],
+      })
+      expect(result.offset.x).toBe(3)
+      // The fired guide on x is center-kind; no spacing-kind guide should appear.
+      const xGuides = result.guides.filter((g) => g.axis === 'x')
+      expect(xGuides.some((g) => g.kind === 'center')).toBe(true)
+      expect(result.guides.some((g) => g.kind === 'spacing')).toBe(false)
     })
   })
 })

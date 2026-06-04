@@ -135,7 +135,7 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v3.7 Flowchart & User Flow pack — 16 shapes.
 - **Shipped:** v3.8 Connector polish — line styles (dashed/dotted), endpoint markers (8 styles × 3 sizes), silhouette-anchored handles.
 - **Shipped:** v3.9 Alignment guides + snap-to-shape + opt-in 8 px grid snap. See [ADR-0011](./adr/0011-alignment-snapping.md).
-- **Next:** v3.9.1 fast-follow — equal-spacing snap (gap-equalizer with double-tick indicators).
+- **Shipped:** v3.9.1 Equal-spacing snap — gap-equalizer with double-tick indicators between row/column-aligned neighbors.
 - **Later (low confidence on timing):** v4 — realtime multiplayer. Gate: v3.x has a user base that asks for it.
 
 Not a commitment with dates. Now/next/later, not Q3/Q4/Q1.
@@ -393,7 +393,7 @@ Three improvements to how connectors look and connect:
 - Guides are ephemeral — never written to `.graffel`.
 
 **Non-goals for v3.9 (fast-follow candidates):**
-- Equal-spacing snap (gap-equalizer) — deferred to v3.9.1.
+- Equal-spacing snap (gap-equalizer) — shipped as v3.9.1 (below).
 - Multi-node-drag snap.
 - Snap on resize (only on move).
 - Align / Distribute toolbar actions.
@@ -406,3 +406,28 @@ Three improvements to how connectors look and connect:
 **Hand-offs:**
 - Engineer: TDD on `snap.ts` first; then wire into `onNodesChange`; then `AlignmentGuides` overlay.
 - QA: cover the toggle persistence, the keyboard shortcut, and a drag that produces both a visible guide mid-drag and a snapped position in the store.
+
+---
+
+## v3.9.1 — Equal-spacing snap (shipped)
+
+**Why this slice.** v3.9 closed edge↔edge and center↔center alignment but left the "B sits between A and C with mismatched gaps" case unsolved — exactly the case architects hit constantly when laying out service rows. v3.9.1 closes it as the fast-follow ADR-0011 named.
+
+**Scope.** See [ADR-0011 v3.9.1 amendment](./adr/0011-alignment-snapping.md#v391-amendment--equal-spacing-snap-shipped):
+- New `kind: 'spacing'` variant on the `Guide` discriminated union (carries `axis`, `perpendicular`, `span`).
+- For each axis, find every pair of other rects flanking the dragged rect with all three centers within `ROW_TOLERANCE = 8 px` on the perpendicular axis. Propose `delta = (gap2 - gap1) / 2`; snap when `|delta| ≤ 4 px`.
+- Edge/center alignment beats equal-spacing at the same `|delta|` via per-candidate `kindPriority`.
+- Two spacing guides emit per fire (one per gap). Rendered in orange (#fb923c) with end ticks, distinct from cyan center / magenta edge.
+
+**Non-goals (still deferred):**
+- Multi-node-drag snap.
+- Resize snap.
+- Align / Distribute toolbar actions.
+
+**Goals (v3.9.1):**
+- 10 unit tests cover the new geometry (row-alignment requirement, two-neighbor requirement, order invariance, tiebreak with edge/center, snap-only-when-within-threshold, overlap rejection).
+- 1 Playwright spec drives a real drag and proves a spacing guide fires + lands in the DOM during the drag.
+
+**Hand-offs:**
+- Engineer: extend `snap.ts` only; `AlignmentGuides` rendering follows from the new guide variant.
+- QA: cover one E2E spec — a drag between two flanking nodes triggers the gap-equalizer.
