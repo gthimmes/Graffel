@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import type { Pack, ShapeDef } from './types'
+import type { Fit, LabelPosition, Pack, ShapeDef } from './types'
+import { DEFAULT_ANCHORS, type Anchor } from '../canvas/anchors'
+import { ICON_BOUNDS } from './iconBounds.generated'
 import { BASIC_PACK } from './packs/basic'
 import { ARCH_CORE_PACK } from './packs/archCore'
 import { CLOUD_PACK } from './packs/cloud'
@@ -41,6 +43,58 @@ for (const pack of PACKS) {
 /** Look up a shape by id (pack-qualified or legacy unqualified). Returns undefined if unknown. */
 export function getShape(id: string): ShapeDef | undefined {
   return _shapeIndex.get(id)
+}
+
+/** Packs whose shapes stretch to fill the box by default (containers, not pictograms). */
+const FILL_PACKS = new Set(['basic', 'flow'])
+
+/** Resolve the icon fit for a shape: explicit override → pack default → 'contain'. */
+export function resolveFit(def: ShapeDef | undefined): Fit {
+  if (def?.fit) return def.fit
+  if (def && FILL_PACKS.has(def.packId)) return 'fill'
+  return 'contain'
+}
+
+/**
+ * Resolve the default label position for a shape: explicit override, else
+ * derived from fit — container shapes label inside ('center'), pictogram shapes
+ * label above ('top').
+ */
+export function resolveDefaultLabelPosition(def: ShapeDef | undefined): LabelPosition {
+  if (def?.defaultLabelPosition) return def.defaultLabelPosition
+  return resolveFit(def) === 'fill' ? 'center' : 'top'
+}
+
+type SideAnchors = Record<'top' | 'right' | 'bottom' | 'left', Anchor>
+
+/**
+ * The four connection anchors (viewBox coords) for a shape. Precedence per side:
+ * explicit handlePositions → iconBounds-derived midpoint → box-edge default.
+ */
+export function resolveAnchors(def: ShapeDef | undefined): SideAnchors {
+  const hp = def?.handlePositions
+  // Precedence for the silhouette box: explicit per-shape iconBounds, else the
+  // measured (generated) bounds, else none (box-edge defaults).
+  const b = def?.iconBounds ?? (def ? ICON_BOUNDS[def.id] : undefined)
+  const derived: SideAnchors = b
+    ? {
+        top:    { x: b.x + b.w / 2, y: b.y },
+        right:  { x: b.x + b.w,     y: b.y + b.h / 2 },
+        bottom: { x: b.x + b.w / 2, y: b.y + b.h },
+        left:   { x: b.x,           y: b.y + b.h / 2 },
+      }
+    : DEFAULT_ANCHORS
+  return {
+    top:    hp?.top    ?? derived.top,
+    right:  hp?.right  ?? derived.right,
+    bottom: hp?.bottom ?? derived.bottom,
+    left:   hp?.left   ?? derived.left,
+  }
+}
+
+/** Every shape id across all packs (pack-qualified). Used by E2E coverage. */
+export function allShapeIds(): string[] {
+  return PACKS.flatMap((p) => p.shapes.map((s) => s.id))
 }
 
 /** Filter packs by a search query against label + keywords. */

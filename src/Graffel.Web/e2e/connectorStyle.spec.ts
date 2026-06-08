@@ -109,13 +109,20 @@ test('arch-core:database renders with handle positions inset from the bbox', asy
     const s = w.__graffel.useDiagramStore.getState()
     s.selectNodes([s.nodes[0]!.id])
   })
-  // The top source handle should be positioned somewhere inside the bbox,
-  // not at top:0. We read computed CSS top.
-  const styleTop = await page.evaluate(() => {
+  // The top handle's rendered center should be inset from the node's top edge
+  // (the cylinder top is ~9% down), not at y:0. Measure the real rendered center
+  // as a fraction of the node box (zoom-independent). Comprehensive per-shape
+  // coverage lives in anchorTouch.spec.ts.
+  const topFrac = await page.evaluate(() => {
     const shape = document.querySelector('[data-testid="shape-database"]') as HTMLElement
+    const hr = shape.getBoundingClientRect()
     const handle = shape.querySelector('.react-flow__handle-top') as HTMLElement | null
-    return handle?.style.top
+    if (!handle) return null
+    const r = handle.getBoundingClientRect()
+    return (((r.top + r.height / 2) - hr.top) / hr.height) * 100
   })
-  // We set top: 6% on the database shape; it should NOT be 0 / unset.
-  expect(styleTop).toBe('6%')
+  expect(topFrac).not.toBeNull()
+  // Clearly inset from the top edge, not floating above it.
+  expect(topFrac!).toBeGreaterThan(2)
+  expect(topFrac!).toBeLessThan(25)
 })

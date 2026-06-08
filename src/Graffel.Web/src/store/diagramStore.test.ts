@@ -25,17 +25,23 @@ describe('diagramStore', () => {
       expect(nodes[0]!.id).not.toBe(nodes[1]!.id)
     })
 
-    it('sets a sensible default label per node type', () => {
+    it('starts new nodes unlabeled (user types a label on demand)', () => {
       const types: NodeType[] = ['service', 'database', 'queue']
       for (const t of types) {
         useDiagramStore.getState().addNode(t, { x: 0, y: 0 })
       }
       const { nodes } = useDiagramStore.getState()
-      expect(nodes.map((n) => n.data.label)).toEqual([
-        'Service',
-        'Database',
-        'Queue',
-      ])
+      expect(nodes.map((n) => n.data.label)).toEqual(['', '', ''])
+    })
+
+    it('beginEditNode/endEditNode track the inline-edit target and seed', () => {
+      const id = useDiagramStore.getState().addNode('service', { x: 0, y: 0 })
+      useDiagramStore.getState().beginEditNode(id, 'A')
+      expect(useDiagramStore.getState().editingNodeId).toBe(id)
+      expect(useDiagramStore.getState().editSeed).toBe('A')
+      useDiagramStore.getState().endEditNode()
+      expect(useDiagramStore.getState().editingNodeId).toBeNull()
+      expect(useDiagramStore.getState().editSeed).toBeNull()
     })
   })
 

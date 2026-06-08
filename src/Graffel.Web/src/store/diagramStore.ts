@@ -10,10 +10,9 @@ import type {
   GraffelNode,
   HandleSide,
 } from '../format/types'
-import { getShape } from '../shapes/registry'
+import { allShapeIds, getShape } from '../shapes/registry'
 
 const FALLBACK_SIZE = { w: 160, h: 80 }
-const FALLBACK_LABEL = 'Shape'
 
 const HISTORY_LIMIT = 50
 const COALESCE_WINDOW_MS = 300
@@ -38,6 +37,10 @@ interface DiagramState {
   readOnly: boolean
   /** v3.9: grid-snap toggle. False by default; persisted via localStorage hook. */
   snapGrid: boolean
+  /** Node whose label is currently being edited inline (ephemeral UI state). */
+  editingNodeId: string | null
+  /** Seed text for an edit session: a string replaces the label; null selects-all. */
+  editSeed: string | null
 
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
@@ -72,6 +75,11 @@ interface DiagramState {
   setDriveFileId: (id: string | null) => void
   setReadOnly: (value: boolean) => void
   setSnapGrid: (value: boolean) => void
+  /** Enter inline label editing for a node. `seed` of a string replaces the
+   *  label as the first keystroke; null/undefined edits the existing label (select-all). */
+  beginEditNode: (id: string, seed?: string | null) => void
+  /** Exit inline label editing. */
+  endEditNode: () => void
 
   // History API
   undo: () => void
@@ -87,6 +95,7 @@ interface DiagramState {
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
   | 'documentId' | 'title' | 'driveFileId' | 'readOnly' | 'snapGrid'
+  | 'editingNodeId' | 'editSeed'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -100,6 +109,8 @@ function emptyState(): Pick<DiagramState,
     driveFileId: null,
     readOnly: false,
     snapGrid: false,
+    editingNodeId: null,
+    editSeed: null,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -149,7 +160,9 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         position,
         size: { ...(def?.defaultSize ?? FALLBACK_SIZE) },
         data: {
-          label: def?.label ?? FALLBACK_LABEL,
+          // Shapes start unlabeled; the user types a label when they want one.
+          // (The shape's name still drives the palette tooltip + inspector heading.)
+          label: '',
           style: def?.defaultStyle ? { ...def.defaultStyle } : undefined,
         },
       }
@@ -347,6 +360,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
           edges: remainingEdges,
           selectedNodeIds: [],
           selectedEdgeIds: [],
+          editingNodeId: s.editingNodeId && killedNodes.has(s.editingNodeId) ? null : s.editingNodeId,
+          editSeed: s.editingNodeId && killedNodes.has(s.editingNodeId) ? null : s.editSeed,
         }
       })
     },
@@ -359,6 +374,12 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     setDriveFileId(id) { set({ driveFileId: id }) },
     setReadOnly(value) { set({ readOnly: value }) },
     setSnapGrid(value) { set({ snapGrid: value }) },
+
+    beginEditNode(id, seed = null) {
+      if (get().readOnly) return
+      set({ editingNodeId: id, editSeed: seed })
+    },
+    endEditNode() { set({ editingNodeId: null, editSeed: null }) },
 
     undo() {
       const s = get()
@@ -437,6 +458,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         driveFileId: remote?.driveFileId ?? null,
         selectedNodeIds: [],
         selectedEdgeIds: [],
+        editingNodeId: null,
+        editSeed: null,
         _past: [],
         _future: [],
         _lastCoalesceKey: null,
@@ -452,5 +475,5 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
 // selection and other state changes without fighting React Flow's pointer
 // hit-testing. Harmless in production; just a window assignment.
 if (typeof window !== 'undefined') {
-  ;(window as unknown as Record<string, unknown>).__graffel = { useDiagramStore }
+  ;(window as unknown as Record<string, unknown>).__graffel = { useDiagramStore, allShapeIds }
 }

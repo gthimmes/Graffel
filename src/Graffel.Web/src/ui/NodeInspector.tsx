@@ -3,11 +3,21 @@ import {
   FONT_FAMILIES,
   type FontFamilyId,
   type FontWeight,
+  type LabelPosition,
   type NodeStyle,
   type TextHAlign,
   type TextVAlign,
 } from '../format/style'
+import { getShape, resolveDefaultLabelPosition } from '../shapes/registry'
 import { ColorPicker, Field, Group, Row, Segmented } from './controls'
+
+const LABEL_POSITIONS: { value: LabelPosition; label: string }[] = [
+  { value: 'center', label: 'Center' },
+  { value: 'top', label: 'Top' },
+  { value: 'bottom', label: 'Bottom' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+]
 
 export function NodeInspector({ nodeId }: { nodeId: string }) {
   const node = useDiagramStore((s) => s.nodes.find((n) => n.id === nodeId))
@@ -17,6 +27,7 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
 
   if (!node) return null
   const style = (node.data.style ?? {}) as NodeStyle
+  const labelPos = style.labelPosition ?? resolveDefaultLabelPosition(getShape(node.type))
 
   return (
     <div className="inspector-body" data-testid="node-inspector">
@@ -30,6 +41,20 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
             onChange={(e) => updateNodeLabel(nodeId, e.target.value)}
             data-testid="ni-label"
           />
+        </Field>
+
+        <Field label="Label position">
+          <select
+            value={labelPos}
+            onChange={(e) =>
+              updateNodeStyle(nodeId, { labelPosition: e.target.value as LabelPosition })
+            }
+            data-testid="ni-label-position"
+          >
+            {LABEL_POSITIONS.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Font">

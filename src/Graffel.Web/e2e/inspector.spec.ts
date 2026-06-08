@@ -17,8 +17,8 @@ test('selecting a node shows the node inspector', async ({ page }) => {
   await page.getByTestId('palette-service').click()
   await page.getByTestId('shape-service').click()
   await expect(page.getByTestId('node-inspector')).toBeVisible()
-  // The label field exists and reflects current value.
-  await expect(page.getByTestId('ni-label')).toHaveValue('Service')
+  // The label field exists; new shapes start unlabeled (empty).
+  await expect(page.getByTestId('ni-label')).toHaveValue('')
 })
 
 test('renaming via inspector updates the shape on canvas', async ({ page }) => {

@@ -136,7 +136,9 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v3.8 Connector polish — line styles (dashed/dotted), endpoint markers (8 styles × 3 sizes), silhouette-anchored handles.
 - **Shipped:** v3.9 Alignment guides + snap-to-shape + opt-in 8 px grid snap. See [ADR-0011](./adr/0011-alignment-snapping.md).
 - **Shipped:** v3.9.1 Equal-spacing snap — gap-equalizer with double-tick indicators between row/column-aligned neighbors.
+- **Shipped:** v3.10 Connectors-on-silhouette + label ergonomics — anchors land on the drawn icon edge (letterbox-corrected + per-shape silhouette bounds measured from rendered pixels into `iconBounds.generated.ts`); a Playwright guard (`anchorTouch.spec.ts`) asserts all 79 shapes touch on 4 sides at default/wide/tall sizes. Labels are empty by default, sit above pictograms, and are repositionable (top/bottom/left/right/center); type-on-selected-shape edits the label.
 - **Later (low confidence on timing):** v4 — realtime multiplayer. Gate: v3.x has a user base that asks for it.
+- **Fast-follow candidate:** floating/dynamic edges that ride the silhouette and slide to face the connected shape (the second option weighed in v3.10; deferred in favor of the fixed-anchor fix).
 
 Not a commitment with dates. Now/next/later, not Q3/Q4/Q1.
 

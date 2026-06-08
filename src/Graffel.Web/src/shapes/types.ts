@@ -15,6 +15,17 @@ export interface ShapeRenderContext {
 
 export type ShapeRenderer = (ctx: ShapeRenderContext) => ReactNode
 
+/**
+ * How the icon fills the node box. 'fill' = stretch to the bounds
+ * (preserveAspectRatio="none"); 'contain' = scale-to-fit + center
+ * (preserveAspectRatio="xMidYMid meet"). MUST match what the renderer passes to
+ * ShapeSvg — connection-anchor placement depends on it.
+ */
+export type Fit = 'fill' | 'contain'
+
+/** Where the text label sits relative to the icon. */
+export type LabelPosition = 'center' | 'top' | 'bottom' | 'left' | 'right'
+
 export interface ShapeDef {
   /** Fully-qualified id, e.g. 'basic:rectangle', 'arch-core:database', 'aws:ec2'. */
   id: string
@@ -30,15 +41,33 @@ export interface ShapeDef {
   defaultStyle?: NodeStyle
   /** Renders the shape's body (SVG, mostly). Caller wraps in the label container. */
   render: ShapeRenderer
-  /** Whether the label is rendered as an overlay on top (most shapes) or below (icon-style shapes). */
-  labelPlacement?: 'overlay' | 'below'
+  /**
+   * Icon fit. Defaults are pack-derived (see resolveFit): 'fill' for the
+   * container packs (basic, flow), 'contain' for pictogram packs. Set
+   * explicitly to override a single shape (e.g. arch-core:boundary is a
+   * container in an otherwise-pictogram pack).
+   */
+  fit?: Fit
+  /**
+   * Default label position for new instances. When absent it's derived from
+   * fit: 'center' (inside) for container shapes, 'top' (above) for pictograms.
+   * Per-instance overrides live in node.data.style.labelPosition.
+   */
+  defaultLabelPosition?: LabelPosition
   /** Optional short test id for E2E specs that predate pack-qualified ids (e.g. 'service'). */
   legacyTestId?: string
   /**
-   * Per-side handle anchor points in 0–100 normalized coords. When set, the
-   * four connection handles snap to the visual silhouette instead of the
-   * bounding-box edges. Default (when absent): {top:(50,0), right:(100,50),
-   * bottom:(50,100), left:(0,50)}.
+   * Tight bounding box of the drawn silhouette in 0–100 viewBox coords. When
+   * set, the four connection anchors are derived from it (side midpoints), so
+   * lines meet the icon edge instead of the icon's square. Cheaper to author
+   * than handlePositions for the common "icon is inset within its square" case.
+   */
+  iconBounds?: { x: number; y: number; w: number; h: number }
+  /**
+   * Per-side handle anchor points in 0–100 viewBox coords. Wins over iconBounds
+   * for any side it specifies — use it when a silhouette isn't well-described by
+   * a box (e.g. a stick figure's arm tips). Default (when neither is set):
+   * box-edge midpoints {top:(50,0), right:(100,50), bottom:(50,100), left:(0,50)}.
    */
   handlePositions?: {
     top?:    { x: number; y: number }

@@ -306,6 +306,27 @@ export function DiagramCanvas() {
         return
       }
 
+      // Type-to-edit: with exactly one node selected, a printable key opens its
+      // label editor and replaces the text; Enter/F2 edits the existing label.
+      // Runs before quick-insert so typing on a selected shape edits it rather
+      // than inserting a new shape.
+      {
+        const st = useDiagramStore.getState()
+        if (st.selectedNodeIds.length === 1 && st.editingNodeId === null) {
+          const nodeId = st.selectedNodeIds[0]!
+          if (e.key === 'Enter' || e.key === 'F2') {
+            e.preventDefault()
+            st.beginEditNode(nodeId)
+            return
+          }
+          if (e.key.length === 1 && !mod && !e.altKey) {
+            e.preventDefault()
+            st.beginEditNode(nodeId, e.key)
+            return
+          }
+        }
+      }
+
       // Arrow nudge.
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         const ids = useDiagramStore.getState().selectedNodeIds

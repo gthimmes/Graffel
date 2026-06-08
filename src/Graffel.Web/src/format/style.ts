@@ -5,6 +5,8 @@
 export type TextHAlign = 'left' | 'center' | 'right'
 export type TextVAlign = 'top' | 'middle' | 'bottom'
 export type FontWeight = 'regular' | 'medium' | 'bold'
+/** Where the label renders relative to the shape icon. */
+export type LabelPosition = 'center' | 'top' | 'bottom' | 'left' | 'right'
 
 export const FONT_FAMILIES = [
   { id: 'system', label: 'System',  css: 'system-ui, -apple-system, sans-serif' },
@@ -37,6 +39,8 @@ export interface NodeStyle {
   textColor?: string         // CSS color
   textHAlign?: TextHAlign
   textVAlign?: TextVAlign
+  /** Label placement relative to the icon. Absent → shape's pack-derived default. */
+  labelPosition?: LabelPosition
   fill?: string              // CSS color (background)
   borderColor?: string       // CSS color
 }

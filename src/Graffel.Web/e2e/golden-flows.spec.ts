@@ -22,10 +22,11 @@ test('cold start: empty canvas with palette and toolbar visible', async ({ page 
 
 test('click palette item to add shape to canvas', async ({ page }) => {
   await page.getByTestId('palette-service').click()
-  // The shape should render inside the canvas.
+  // The shape should render inside the canvas. New shapes start unlabeled, so
+  // we assert presence by the icon body rather than any default text.
   const shape = page.getByTestId('shape-service')
   await expect(shape).toBeVisible()
-  await expect(shape).toContainText('Service')
+  await expect(shape.locator('.graffel-shape-body svg')).toBeVisible()
 })
 
 test('add multiple shapes', async ({ page }) => {

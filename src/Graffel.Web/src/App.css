@@ -418,6 +418,19 @@ html, body, #root {
 .graffel-shape-label-host.is-text-shape .graffel-shape-label {
   padding: 0;
 }
+/* Outside labels (top/bottom/left/right) ride on the canvas, so give the text a
+   white halo for legibility over the grid and any shape it overlaps. */
+.graffel-shape-label-host:not(.is-pos-center) .graffel-shape-label {
+  white-space: normal;
+  line-height: 1.2;
+  text-shadow:
+    0 0 3px var(--color-surface, #fff),
+    0 0 3px var(--color-surface, #fff),
+    0 0 3px var(--color-surface, #fff);
+}
+.graffel-shape-label-host:not(.is-pos-center) .graffel-shape-label-input {
+  min-width: 90px;
+}
 .graffel-shape-label-input {
   width: 100%;
   border: none;
