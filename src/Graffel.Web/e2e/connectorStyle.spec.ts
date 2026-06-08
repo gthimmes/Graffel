@@ -91,6 +91,30 @@ test('marker size segmented control updates the edge', async ({ page }) => {
   expect(stored).toBe('lg')
 })
 
+test('marker start + end actually resolve to real marker defs on the rendered edge', async ({ page }) => {
+  // Regression: the edge path must reference markers via url('#<id>') where the
+  // id exists in <defs>. A double-wrapped url, or a markerStart that never
+  // reaches BaseEdge, leaves the arrow invisible even though the store is correct.
+  await seedEdge(page, { strokeColor: '#dc2626', markerStart: 'circle-filled', markerEnd: 'arrow', markerSize: 'lg' })
+  await page.waitForSelector('.react-flow__edge[data-id="e_1"] .react-flow__edge-path')
+  await page.waitForTimeout(300)
+  const r = await page.evaluate(() => {
+    const path = document.querySelector('.react-flow__edge[data-id="e_1"] .react-flow__edge-path') as SVGPathElement | null
+    const idFrom = (attr: string | null | undefined) => attr?.match(/url\(['"]?#([^'")]+)/)?.[1] ?? null
+    const endId = idFrom(path?.getAttribute('marker-end'))
+    const startId = idFrom(path?.getAttribute('marker-start'))
+    return {
+      endId, startId,
+      endResolves: !!(endId && document.getElementById(endId)),
+      startResolves: !!(startId && document.getElementById(startId)),
+    }
+  })
+  expect(r.endId).toBe('graffel-arrow-lg-end')
+  expect(r.endResolves).toBe(true)
+  expect(r.startId).toBe('graffel-circle-filled-lg-start')
+  expect(r.startResolves).toBe(true)
+})
+
 test('marker definitions are rendered in the DOM', async ({ page }) => {
   await page.goto('/')
   // The defs SVG ships every marker × size × role combo.

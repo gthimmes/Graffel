@@ -29,10 +29,15 @@ export function markerId(marker: EdgeMarker, size: MarkerSize, role: 'start' | '
   return `graffel-${marker}-${size}-${role}`
 }
 
-/** Returns the inline `url(#...)` reference, or undefined for 'none'. */
+/**
+ * The marker id to put on a React Flow edge's markerStart/markerEnd, or
+ * undefined for 'none'. React Flow itself wraps this id as `url('#<id>')` when
+ * it renders the edge — so we must pass the BARE id here, not a `url(#...)`
+ * string (doing so double-wraps it into an unresolvable reference).
+ */
 export function markerRef(marker: EdgeMarker | undefined, size: MarkerSize | undefined, role: 'start' | 'end'): string | undefined {
   if (!marker || marker === 'none') return undefined
-  return `url(#${markerId(marker, size ?? 'md', role)})`
+  return markerId(marker, size ?? 'md', role)
 }
 
 export function EdgeMarkerDefs() {

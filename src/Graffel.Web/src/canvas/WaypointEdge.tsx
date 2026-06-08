@@ -29,6 +29,7 @@ export function WaypointEdge(props: EdgeProps) {
     sourcePosition, targetPosition,
     selected,
     style,
+    markerStart,
     markerEnd,
     data,
   } = props
@@ -62,7 +63,7 @@ export function WaypointEdge(props: EdgeProps) {
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} interactionWidth={20} />
+      <BaseEdge id={id} path={path} style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={20} />
       {/* Extra invisible-but-clickable path widens the context-menu hit area. */}
       <path
         d={path}
