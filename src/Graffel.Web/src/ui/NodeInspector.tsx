@@ -108,7 +108,7 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
         </Field>
 
         <Row>
-          <Field label="H-align">
+          <Field label="Text align">
             <Segmented<TextHAlign>
               testId="ni-h-align"
               value={style.textHAlign ?? 'center'}
@@ -120,18 +120,22 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
               ]}
             />
           </Field>
-          <Field label="V-align">
-            <Segmented<TextVAlign>
-              testId="ni-v-align"
-              value={style.textVAlign ?? 'middle'}
-              onChange={(v) => updateNodeStyle(nodeId, { textVAlign: v })}
-              options={[
-                { value: 'top',    label: 'T' },
-                { value: 'middle', label: 'M' },
-                { value: 'bottom', label: 'B' },
-              ]}
-            />
-          </Field>
+          {/* V-align only affects a centered (inside) label; for outside labels
+              the position controls vertical placement, so we hide it there. */}
+          {labelPos === 'center' ? (
+            <Field label="V-align">
+              <Segmented<TextVAlign>
+                testId="ni-v-align"
+                value={style.textVAlign ?? 'middle'}
+                onChange={(v) => updateNodeStyle(nodeId, { textVAlign: v })}
+                options={[
+                  { value: 'top',    label: 'T' },
+                  { value: 'middle', label: 'M' },
+                  { value: 'bottom', label: 'B' },
+                ]}
+              />
+            </Field>
+          ) : null}
         </Row>
       </Group>
 

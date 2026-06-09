@@ -10,6 +10,38 @@ test.beforeEach(async ({ page }) => {
   await page.reload()
 })
 
+test('a connector label renders on the canvas and edits on double-click', async ({ page }) => {
+  // Regression: WaypointEdge previously rendered no label at all, so connector
+  // labels were stored/inspector-only and invisible on the canvas.
+  await page.evaluate(() => {
+    const doc = {
+      format: 'graffel', schemaVersion: 1, id: '01HXEDGELABELDOCXXXXXXXXXX',
+      metadata: { title: 't', createdAt: '2026-06-08T00:00:00Z', updatedAt: '2026-06-08T00:00:00Z', appVersion: 'dev' },
+      viewport: { x: 0, y: 0, zoom: 1 },
+      nodes: [
+        { id: 'n1', type: 'basic:rectangle', position: { x: 80, y: 200 }, size: { w: 140, h: 80 }, data: { label: '' } },
+        { id: 'n2', type: 'basic:rectangle', position: { x: 420, y: 200 }, size: { w: 140, h: 80 }, data: { label: '' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'n1', sourceHandle: 'right', target: 'n2', targetHandle: 'left', type: 'straight', data: { label: 'reads', waypoints: [] } },
+      ],
+      reserved: { remote: null, ops: null },
+    }
+    localStorage.setItem('graffel.currentDocument.v1', JSON.stringify(doc))
+  })
+  await page.reload()
+  const lbl = page.getByTestId('edge-label-e1')
+  await expect(lbl).toBeVisible()
+  await expect(lbl).toHaveText('reads')
+  // Double-click to edit inline.
+  await lbl.dblclick()
+  const input = page.getByTestId('edge-label-input-e1')
+  await expect(input).toBeVisible()
+  await input.fill('writes')
+  await input.press('Enter')
+  await expect(page.getByTestId('edge-label-e1')).toHaveText('writes')
+})
+
 test('new pictogram shapes start unlabeled with the label above the icon', async ({ page }) => {
   await page.getByTestId('palette-service').click()
   const host = page.getByTestId('shape-label-host')

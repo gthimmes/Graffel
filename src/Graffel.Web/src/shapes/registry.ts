@@ -65,6 +65,12 @@ export function resolveDefaultLabelPosition(def: ShapeDef | undefined): LabelPos
   return resolveFit(def) === 'fill' ? 'center' : 'top'
 }
 
+/** The shape's silhouette bbox in 0–100 viewBox coords (explicit → measured →
+ *  full box). Used to hug outside labels to the drawn icon, not the node box. */
+export function resolveIconBounds(def: ShapeDef | undefined): { x: number; y: number; w: number; h: number } {
+  return def?.iconBounds ?? (def ? ICON_BOUNDS[def.id] : undefined) ?? { x: 0, y: 0, w: 100, h: 100 }
+}
+
 type SideAnchors = Record<'top' | 'right' | 'bottom' | 'left', Anchor>
 
 /**

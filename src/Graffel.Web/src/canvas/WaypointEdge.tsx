@@ -1,11 +1,13 @@
 import {
   BaseEdge,
+  EdgeLabelRenderer,
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
   useReactFlow,
   type EdgeProps,
 } from '@xyflow/react'
+import { useEffect, useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import type { EdgeType } from '../format/types'
 import { useEdgeMenuStore } from './edgeMenuStore'
@@ -31,6 +33,7 @@ export function WaypointEdge(props: EdgeProps) {
     style,
     markerStart,
     markerEnd,
+    label,
     data,
   } = props
 
@@ -40,15 +43,20 @@ export function WaypointEdge(props: EdgeProps) {
   const target = { x: targetX, y: targetY }
 
   let path: string
+  let labelX: number
+  let labelY: number
   if (waypoints.length > 0) {
     // User-owned routing: straight segments between waypoints.
     path = buildWaypointPath(source, waypoints, target)
+    const pts = [source, ...waypoints, target]
+    const mid = pts[Math.floor(pts.length / 2)]!
+    labelX = mid.x; labelY = mid.y
   } else if (routingMode === 'straight') {
-    [path] = getStraightPath({ sourceX, sourceY, targetX, targetY })
+    [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY })
   } else if (routingMode === 'bezier') {
-    [path] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+    [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
   } else {
-    [path] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+    [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
   }
 
   const readOnly = useDiagramStore((s) => s.readOnly)
@@ -74,6 +82,7 @@ export function WaypointEdge(props: EdgeProps) {
         onContextMenu={onContextMenu}
         data-testid={`edge-hitbox-${id}`}
       />
+      <EdgeLabel edgeId={id} x={labelX} y={labelY} label={typeof label === 'string' ? label : ''} readOnly={readOnly} />
       {selected && !readOnly ? (
         <WaypointHandles
           edgeId={id}
@@ -83,6 +92,53 @@ export function WaypointEdge(props: EdgeProps) {
         />
       ) : null}
     </>
+  )
+}
+
+/** Connector label rendered at the path midpoint; double-click to edit inline. */
+function EdgeLabel({ edgeId, x, y, label, readOnly }: { edgeId: string; x: number; y: number; label: string; readOnly: boolean }) {
+  const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(label)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { setDraft(label) }, [label])
+  useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
+
+  // Nothing to show and nothing being edited → render nothing (no empty chip).
+  if (!editing && !label) return null
+
+  function commit() {
+    if (draft !== label) updateEdgeLabel(edgeId, draft)
+    setEditing(false)
+  }
+
+  return (
+    <EdgeLabelRenderer>
+      <div
+        className="graffel-edge-label"
+        style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`, pointerEvents: readOnly ? 'none' : 'all' }}
+        onDoubleClick={(e) => { if (!readOnly) { e.stopPropagation(); setEditing(true) } }}
+        data-testid={`edge-label-${edgeId}`}
+      >
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="graffel-edge-label-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commit() }
+              if (e.key === 'Escape') { setDraft(label); setEditing(false) }
+            }}
+            autoFocus
+            data-testid={`edge-label-input-${edgeId}`}
+          />
+        ) : (
+          <span>{label}</span>
+        )}
+      </div>
+    </EdgeLabelRenderer>
   )
 }
 

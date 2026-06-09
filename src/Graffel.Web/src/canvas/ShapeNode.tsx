@@ -12,7 +12,7 @@ import {
   type NodeStyle,
 } from '../format/style'
 import { useDiagramStore } from '../store/diagramStore'
-import { getShape, resolveAnchors, resolveDefaultLabelPosition, resolveFit } from '../shapes/registry'
+import { getShape, resolveAnchors, resolveDefaultLabelPosition, resolveFit, resolveIconBounds } from '../shapes/registry'
 import { anchorToBoxPercent } from './anchors'
 
 interface ShapeNodeData extends Record<string, unknown> {
@@ -74,25 +74,30 @@ function vAlignFlex(a: 'top' | 'middle' | 'bottom' | undefined): CSSProperties['
   return 'center'
 }
 
+/** The drawn icon's edges in node-box px (silhouette bounds through the fit). */
+interface IconRect { top: number; bottom: number; left: number; right: number; cx: number; cy: number }
+
 /**
- * Positioning for the label container relative to the node box. 'center' is the
- * in-icon overlay (containers); the others sit just outside the icon edge.
+ * Positioning for the label container. 'center' is the in-icon overlay
+ * (containers). The others hug the icon's *silhouette* edge (rect), not the node
+ * box — so letterboxed pictograms don't get a big gap above/below the label.
  */
-function labelBoxStyle(pos: LabelPosition, isTextShape: boolean): CSSProperties {
-  const GAP = 5
+function labelBoxStyle(pos: LabelPosition, isTextShape: boolean, r: IconRect): CSSProperties {
+  const GAP = 4
+  // width:max-content sizes the box to the text (then wraps at maxWidth) — an
+  // absolutely-positioned block would otherwise be capped at boxWidth-left and
+  // wrap a single word like "Customer".
+  const MAXW = 220
+  const common: CSSProperties = { width: 'max-content', maxWidth: MAXW }
   switch (pos) {
     case 'top':
-      return { left: '50%', bottom: `calc(100% + ${GAP}px)`, transform: 'translateX(-50%)',
-        minWidth: '100%', maxWidth: 220, textAlign: 'center', justifyContent: 'center', alignItems: 'flex-end' }
+      return { ...common, left: `${r.cx}px`, top: `${r.top - GAP}px`, transform: 'translate(-50%, -100%)', textAlign: 'center' }
     case 'bottom':
-      return { left: '50%', top: `calc(100% + ${GAP}px)`, transform: 'translateX(-50%)',
-        minWidth: '100%', maxWidth: 220, textAlign: 'center', justifyContent: 'center', alignItems: 'flex-start' }
+      return { ...common, left: `${r.cx}px`, top: `${r.bottom + GAP}px`, transform: 'translate(-50%, 0)', textAlign: 'center' }
     case 'left':
-      return { right: `calc(100% + ${GAP}px)`, top: '50%', transform: 'translateY(-50%)',
-        maxWidth: 180, textAlign: 'right', justifyContent: 'flex-end', alignItems: 'center' }
+      return { ...common, left: `${r.left - GAP}px`, top: `${r.cy}px`, transform: 'translate(-100%, -50%)', textAlign: 'right' }
     case 'right':
-      return { left: `calc(100% + ${GAP}px)`, top: '50%', transform: 'translateY(-50%)',
-        maxWidth: 180, textAlign: 'left', justifyContent: 'flex-start', alignItems: 'center' }
+      return { ...common, left: `${r.right + GAP}px`, top: `${r.cy}px`, transform: 'translate(0, -50%)', textAlign: 'left' }
     case 'center':
     default:
       return { inset: isTextShape ? 0 : 8 }
@@ -146,8 +151,25 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
   const fit = resolveFit(def)
   const labelPos: LabelPosition = merged.labelPosition ?? resolveDefaultLabelPosition(def)
   const isCenter = labelPos === 'center'
-  const posStyle = labelBoxStyle(labelPos, isTextShape)
   const anchors = resolveAnchors(def)
+
+  // The drawn icon's edges in box px (silhouette bounds through the fit), so
+  // outside labels hug the icon — not the letterboxed node box.
+  const ib = resolveIconBounds(def)
+  const pct = (x: number, y: number) => anchorToBoxPercent({ x, y }, { w: width, h: height }, fit)
+  const tp = pct(ib.x + ib.w / 2, ib.y)
+  const bp = pct(ib.x + ib.w / 2, ib.y + ib.h)
+  const lp = pct(ib.x, ib.y + ib.h / 2)
+  const rp = pct(ib.x + ib.w, ib.y + ib.h / 2)
+  const iconRect = {
+    top: (tp.top / 100) * height,
+    bottom: (bp.top / 100) * height,
+    left: (lp.left / 100) * width,
+    right: (rp.left / 100) * width,
+    cx: (tp.left / 100) * width,
+    cy: (lp.top / 100) * height,
+  }
+  const posStyle = labelBoxStyle(labelPos, isTextShape, iconRect)
 
   return (
     <>
@@ -215,15 +237,19 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
           style={{
             position: 'absolute',
             ...posStyle,
-            display: 'flex',
-            alignItems: isCenter ? vAlignFlex(merged.textVAlign) : posStyle.alignItems,
-            justifyContent: isCenter ? hAlignFlex(merged.textHAlign) : posStyle.justifyContent,
+            // Center labels fill the icon and use flex H/V alignment; outside
+            // labels are point-anchored to the silhouette edge (block + translate).
+            display: isCenter ? 'flex' : 'block',
+            alignItems: isCenter ? vAlignFlex(merged.textVAlign) : undefined,
+            justifyContent: isCenter ? hAlignFlex(merged.textHAlign) : undefined,
             pointerEvents: editing ? 'auto' : 'none',
             color: textColor,
             fontFamily: fontFamilyCss(merged.fontFamily),
             fontSize: merged.fontSize ? `${merged.fontSize}px` : '13px',
             fontWeight: fontWeightCss(merged.fontWeight),
-            textAlign: isCenter ? (merged.textHAlign ?? 'center') : posStyle.textAlign,
+            // H-align applies in both modes (text justification); position default
+            // when the user hasn't picked one.
+            textAlign: merged.textHAlign ?? (isCenter ? 'center' : posStyle.textAlign),
             userSelect: 'none',
           }}
         >
