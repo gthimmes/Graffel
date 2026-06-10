@@ -35,6 +35,7 @@ import { EdgeContextMenu } from './EdgeContextMenu'
 import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
 import { useUiStore } from '../ui/CommandPalette'
+import { SelectionToolbar } from '../ui/SelectionToolbar'
 import { AlignmentGuides } from './AlignmentGuides'
 import { computeSnap, GRID_SIZE, type Guide, type IdRect } from './snap'
 
@@ -446,6 +447,7 @@ export function DiagramCanvas() {
           onClose={closeEdgeMenu}
         />
       ) : null}
+      <SelectionToolbar />
     </div>
   )
 }

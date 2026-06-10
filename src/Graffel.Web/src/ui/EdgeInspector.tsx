@@ -7,6 +7,7 @@ import type {
 } from '../format/style'
 import type { EdgeType } from '../format/types'
 import { ColorPicker, Field, Group, Row, Segmented } from './controls'
+import { MARKER_OPTIONS } from './markerOptions'
 
 export function EdgeInspector({ edgeId }: { edgeId: string }) {
   const edge = useDiagramStore((s) => s.edges.find((e) => e.id === edgeId))
@@ -113,15 +114,9 @@ export function EdgeInspector({ edgeId }: { edgeId: string }) {
             onChange={(e) => updateEdgeStyle(edgeId, { markerStart: e.target.value as EdgeMarker })}
             data-testid="ei-marker-start"
           >
-            <option value="none">None</option>
-            <option value="arrow">Arrow (filled)</option>
-            <option value="arrow-open">Arrow (open)</option>
-            <option value="triangle">Triangle (open)</option>
-            <option value="triangle-filled">Triangle (filled)</option>
-            <option value="diamond">Diamond (open)</option>
-            <option value="diamond-filled">Diamond (filled)</option>
-            <option value="circle">Circle (open)</option>
-            <option value="circle-filled">Circle (filled)</option>
+            {MARKER_OPTIONS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
           </select>
         </Field>
         <Field label="End">
@@ -130,15 +125,9 @@ export function EdgeInspector({ edgeId }: { edgeId: string }) {
             onChange={(e) => updateEdgeStyle(edgeId, { markerEnd: e.target.value as EdgeMarker })}
             data-testid="ei-marker-end"
           >
-            <option value="none">None</option>
-            <option value="arrow">Arrow (filled)</option>
-            <option value="arrow-open">Arrow (open)</option>
-            <option value="triangle">Triangle (open)</option>
-            <option value="triangle-filled">Triangle (filled)</option>
-            <option value="diamond">Diamond (open)</option>
-            <option value="diamond-filled">Diamond (filled)</option>
-            <option value="circle">Circle (open)</option>
-            <option value="circle-filled">Circle (filled)</option>
+            {MARKER_OPTIONS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
           </select>
         </Field>
         <Field label="Marker size">

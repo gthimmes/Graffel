@@ -400,6 +400,79 @@ html, body, #root {
   background: var(--color-bg);
 }
 
+/* On-canvas selection toolbar — floats above (or below) the current selection. */
+.graffel-selection-toolbar {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  pointer-events: auto;
+  font-size: 12px;
+}
+
+.stb-pop-anchor {
+  position: relative;
+  display: flex;
+}
+
+.stb-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stb-button:hover {
+  background: var(--color-surface-hover, rgba(148, 163, 184, 0.12));
+}
+
+.stb-button.is-active {
+  background: var(--color-surface-hover, rgba(148, 163, 184, 0.18));
+  border-color: var(--color-border);
+}
+
+.stb-chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  display: inline-block;
+}
+
+.stb-label {
+  font-weight: 500;
+}
+
+.graffel-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 180px;
+  padding: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* v3 Shape nodes — body is SVG drawn by the registry; label is a separate overlay. */
 .graffel-shape-host {
   width: 100%;
