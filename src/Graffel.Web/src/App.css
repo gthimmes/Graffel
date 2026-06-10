@@ -539,7 +539,8 @@ html, body, #root {
 }
 
 /* Edge context menu */
-.graffel-edge-context-menu {
+.graffel-edge-context-menu,
+.graffel-context-menu {
   min-width: 180px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -548,7 +549,8 @@ html, body, #root {
   padding: 4px 0;
   font-size: 13px;
 }
-.graffel-edge-context-menu button {
+.graffel-edge-context-menu button,
+.graffel-context-menu button {
   display: block;
   width: 100%;
   padding: 6px 14px;
@@ -559,12 +561,18 @@ html, body, #root {
   color: var(--color-text);
   cursor: pointer;
 }
-.graffel-edge-context-menu button:hover { background: var(--color-accent-soft); color: var(--color-accent); }
-.edge-ctx-divider {
+.graffel-edge-context-menu button:hover,
+.graffel-context-menu button:hover { background: var(--color-accent-soft); color: var(--color-accent); }
+.edge-ctx-divider,
+.ctx-divider {
   height: 1px;
   background: var(--color-border);
   margin: 4px 0;
 }
+
+/* Hand/pan tool — show a grab cursor over the canvas surface. */
+.graffel-canvas-host.is-panning .react-flow__pane { cursor: grab; }
+.graffel-canvas-host.is-panning .react-flow__pane:active { cursor: grabbing; }
 
 /* Inspector */
 .graffel-inspector {

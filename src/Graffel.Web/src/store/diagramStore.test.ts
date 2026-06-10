@@ -189,6 +189,47 @@ describe('diagramStore', () => {
     })
   })
 
+  describe('z-order', () => {
+    function threeNodes() {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 0, y: 0 })
+      s.addNode('rectangle', { x: 50, y: 0 })
+      s.addNode('rectangle', { x: 100, y: 0 })
+      return useDiagramStore.getState().nodes.map((n) => n.id) // [a, b, c]
+    }
+
+    it('bringToFront moves the node to the end of the array (top of stack)', () => {
+      const [a, b, c] = threeNodes()
+      useDiagramStore.getState().bringToFront([a!])
+      expect(useDiagramStore.getState().nodes.map((n) => n.id)).toEqual([b, c, a])
+    })
+
+    it('sendToBack moves the node to the front of the array (bottom of stack)', () => {
+      const [a, b, c] = threeNodes()
+      useDiagramStore.getState().sendToBack([c!])
+      expect(useDiagramStore.getState().nodes.map((n) => n.id)).toEqual([c, a, b])
+    })
+
+    it('bringForward moves the node one step toward the top', () => {
+      const [a, b, c] = threeNodes()
+      useDiagramStore.getState().bringForward([a!])
+      expect(useDiagramStore.getState().nodes.map((n) => n.id)).toEqual([b, a, c])
+    })
+
+    it('sendBackward moves the node one step toward the bottom', () => {
+      const [a, b, c] = threeNodes()
+      useDiagramStore.getState().sendBackward([c!])
+      expect(useDiagramStore.getState().nodes.map((n) => n.id)).toEqual([a, c, b])
+    })
+
+    it('z-order changes are undoable', () => {
+      const [a, b, c] = threeNodes()
+      useDiagramStore.getState().bringToFront([a!])
+      useDiagramStore.getState().undo()
+      expect(useDiagramStore.getState().nodes.map((n) => n.id)).toEqual([a, b, c])
+    })
+  })
+
   describe('removeSelection', () => {
     it('removes selected nodes and their incident edges', () => {
       const s = useDiagramStore.getState()

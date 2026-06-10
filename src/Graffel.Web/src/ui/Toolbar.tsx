@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
+import { useToolStore } from '../canvas/toolStore'
 import { AuthMenu } from '../auth/AuthMenu'
 import { useAuth } from '../auth/useAuth'
 import { DriveMenu } from '../drive/DriveMenu'
@@ -36,6 +37,8 @@ export function Toolbar() {
   const futureLen = useDiagramStore((s) => s._future.length)
   const snapGrid = useDiagramStore((s) => s.snapGrid)
   const setSnapGrid = useDiagramStore((s) => s.setSnapGrid)
+  const tool = useToolStore((s) => s.tool)
+  const setTool = useToolStore((s) => s.setTool)
   const fileInput = useRef<HTMLInputElement>(null)
 
   function safeFilename(base: string): string {
@@ -92,6 +95,25 @@ export function Toolbar() {
         aria-label="Diagram title"
       />
       <span className="spacer" />
+      <div className="tool-group" role="radiogroup" aria-label="Pointer tool">
+        <button
+          type="button"
+          onClick={() => setTool('select')}
+          title="Select tool (V) — drag to rubber-band select"
+          aria-pressed={tool === 'select'}
+          data-testid="tool-select"
+          className={tool === 'select' ? 'toolbar-toggle on' : 'toolbar-toggle'}
+        >▣ Select</button>
+        <button
+          type="button"
+          onClick={() => setTool('pan')}
+          title="Hand tool (H) — drag to pan"
+          aria-pressed={tool === 'pan'}
+          data-testid="tool-pan"
+          className={tool === 'pan' ? 'toolbar-toggle on' : 'toolbar-toggle'}
+        >✋ Hand</button>
+      </div>
+      <span className="toolbar-divider" />
       <button
         type="button"
         onClick={undo}

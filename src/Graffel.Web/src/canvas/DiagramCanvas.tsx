@@ -3,6 +3,7 @@ import {
   Controls,
   MiniMap,
   ReactFlow,
+  SelectionMode,
   useReactFlow,
   type Connection,
   type EdgeChange,
@@ -36,6 +37,9 @@ import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
 import { useUiStore } from '../ui/CommandPalette'
 import { SelectionToolbar } from '../ui/SelectionToolbar'
+import { useToolStore } from './toolStore'
+import { useNodeMenuStore } from './nodeMenuStore'
+import { NodeContextMenu } from './NodeContextMenu'
 import { AlignmentGuides } from './AlignmentGuides'
 import { computeSnap, GRID_SIZE, type Guide, type IdRect } from './snap'
 
@@ -59,6 +63,11 @@ export function DiagramCanvas() {
   const readOnly = useDiagramStore((s) => s.readOnly)
   const edgeMenu = useEdgeMenuStore((s) => s.open)
   const closeEdgeMenu = useEdgeMenuStore((s) => s.close)
+  const tool = useToolStore((s) => s.tool)
+  const setTool = useToolStore((s) => s.setTool)
+  const nodeMenu = useNodeMenuStore((s) => s.open)
+  const openNodeMenu = useNodeMenuStore((s) => s.openAt)
+  const closeNodeMenu = useNodeMenuStore((s) => s.close)
 
   const rfNodes = useMemo(
     // Parents must precede their children in the array (React Flow requirement).
@@ -127,6 +136,26 @@ export function DiagramCanvas() {
       window.removeEventListener('keyup', onUp)
     }
   }, [])
+
+  // Spacebar-hold temporarily forces the pan tool (released → back to current tool).
+  const [spacePan, setSpacePan] = useState(false)
+  useEffect(() => {
+    const isEditable = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+    }
+    const onDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !isEditable(e.target) && !spacePan) setSpacePan(true)
+    }
+    const onUp = (e: KeyboardEvent) => { if (e.code === 'Space') setSpacePan(false) }
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+    }
+  }, [spacePan])
+  const panning = tool === 'pan' || spacePan
 
   // Hydrate from localStorage on mount.
   useEffect(() => {
@@ -241,6 +270,16 @@ export function DiagramCanvas() {
       setNodeParent(dragged.id, targetId)
     }
   }, [setNodeParent])
+
+  // Right-click a node → select it (unless already in the selection) and open the
+  // node context menu (z-order, duplicate, delete, group/ungroup).
+  const onNodeContextMenu = useCallback((e: React.MouseEvent, node: { id: string }) => {
+    if (readOnly) return
+    e.preventDefault()
+    const current = useDiagramStore.getState().selectedNodeIds
+    if (!current.includes(node.id)) selectNodes([node.id])
+    openNodeMenu(e.clientX, e.clientY)
+  }, [readOnly, selectNodes, openNodeMenu])
 
   const onDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -393,6 +432,15 @@ export function DiagramCanvas() {
         return
       }
 
+      // Pointer tool switch: V = select, H = hand. After type-to-edit so typing
+      // these letters into a selected shape's label still works.
+      if (!mod && !e.altKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault(); setTool('select'); return
+      }
+      if (!mod && !e.altKey && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault(); setTool('pan'); return
+      }
+
       // Quick-insert R / E / D / T at cursor flow position.
       // (Note: Cmd+D is handled above as duplicate; bare 'd' inserts a diamond.)
       const lower = e.key.toLowerCase()
@@ -407,13 +455,14 @@ export function DiagramCanvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [removeSelection, selectNodes, selectEdges, undo, redo, selectAll, duplicateNodes, nudgeNodes, groupNodes, ungroupNodes])
+  }, [removeSelection, selectNodes, selectEdges, undo, redo, selectAll, duplicateNodes, nudgeNodes, groupNodes, ungroupNodes, setTool])
 
   return (
     <div
       ref={wrapperRef}
-      className="graffel-canvas-host"
+      className={`graffel-canvas-host${panning ? ' is-panning' : ''}`}
       data-testid="canvas-host"
+      data-tool={panning ? 'pan' : 'select'}
       onDrop={onDrop}
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
@@ -428,9 +477,15 @@ export function DiagramCanvas() {
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
         onNodeDragStop={readOnly ? undefined : onNodeDragStop}
+        onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
+        // Pointer tool: 'select' rubber-bands on left-drag (middle still pans);
+        // 'pan' (or Space held) grabs the canvas. Shift+drag box-selects in both.
+        panOnDrag={panning ? true : [1]}
+        selectionOnDrag={!panning}
+        selectionMode={SelectionMode.Partial}
         fitView
         proOptions={{ hideAttribution: true }}
       >
@@ -446,6 +501,9 @@ export function DiagramCanvas() {
           y={edgeMenu.y}
           onClose={closeEdgeMenu}
         />
+      ) : null}
+      {nodeMenu ? (
+        <NodeContextMenu x={nodeMenu.x} y={nodeMenu.y} onClose={closeNodeMenu} />
       ) : null}
       <SelectionToolbar />
     </div>

@@ -62,6 +62,11 @@ interface DiagramState {
   ungroupNodes: (groupId: string) => void
   /** Reparent a node into `parentId` (or null to unparent), converting its stored position. */
   setNodeParent: (id: string, parentId: string | null) => void
+  /** Z-order: stacking within a depth level follows the nodes-array order (later = on top). */
+  bringToFront: (ids: string[]) => void
+  sendToBack: (ids: string[]) => void
+  bringForward: (ids: string[]) => void
+  sendBackward: (ids: string[]) => void
   updateEdgeLabel: (id: string, label: string) => void
   updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeType: (id: string, type: EdgeType) => void
@@ -450,6 +455,55 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       snapshot(null)
       set((s) => ({ edges: [...s.edges, edge] }))
       return id
+    },
+
+    bringToFront(ids) {
+      if (ids.length === 0) return
+      const sel = new Set(ids)
+      snapshot(null)
+      set((s) => ({
+        nodes: [...s.nodes.filter((n) => !sel.has(n.id)), ...s.nodes.filter((n) => sel.has(n.id))],
+      }))
+    },
+
+    sendToBack(ids) {
+      if (ids.length === 0) return
+      const sel = new Set(ids)
+      snapshot(null)
+      set((s) => ({
+        nodes: [...s.nodes.filter((n) => sel.has(n.id)), ...s.nodes.filter((n) => !sel.has(n.id))],
+      }))
+    },
+
+    bringForward(ids) {
+      if (ids.length === 0) return
+      const sel = new Set(ids)
+      snapshot(null)
+      set((s) => {
+        const arr = [...s.nodes]
+        // Walk top→down so a moved node isn't carried further in the same pass.
+        for (let i = arr.length - 2; i >= 0; i--) {
+          if (sel.has(arr[i]!.id) && !sel.has(arr[i + 1]!.id)) {
+            ;[arr[i], arr[i + 1]] = [arr[i + 1]!, arr[i]!]
+          }
+        }
+        return { nodes: arr }
+      })
+    },
+
+    sendBackward(ids) {
+      if (ids.length === 0) return
+      const sel = new Set(ids)
+      snapshot(null)
+      set((s) => {
+        const arr = [...s.nodes]
+        for (let i = 1; i < arr.length; i++) {
+          if (sel.has(arr[i]!.id) && !sel.has(arr[i - 1]!.id)) {
+            ;[arr[i], arr[i - 1]] = [arr[i - 1]!, arr[i]!]
+          }
+        }
+        return { nodes: arr }
+      })
     },
 
     selectNodes(ids) { set({ selectedNodeIds: ids }) },
