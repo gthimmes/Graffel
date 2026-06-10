@@ -11,6 +11,7 @@ import type {
   HandleSide,
 } from '../format/types'
 import { allShapeIds, getShape } from '../shapes/registry'
+import { absolutePosition, absoluteRect, descendantIds, indexNodes } from '../canvas/nesting'
 
 const FALLBACK_SIZE = { w: 160, h: 80 }
 
@@ -55,6 +56,12 @@ interface DiagramState {
   updateNodeStyle: (id: string, patch: Record<string, unknown>) => void
   duplicateNodes: (ids: string[], offset?: { x: number; y: number }) => string[]
   nudgeNodes: (ids: string[], delta: { x: number; y: number }) => void
+  /** Wrap the top-level nodes among `ids` in a new container; returns its id (null if none). */
+  groupNodes: (ids: string[]) => string | null
+  /** Dissolve a container, lifting its children one level up (absolute-preserving). */
+  ungroupNodes: (groupId: string) => void
+  /** Reparent a node into `parentId` (or null to unparent), converting its stored position. */
+  setNodeParent: (id: string, parentId: string | null) => void
   updateEdgeLabel: (id: string, label: string) => void
   updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeType: (id: string, type: EdgeType) => void
@@ -211,20 +218,131 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       snapshot(null)
       const newIds: string[] = []
       set((s) => {
-        const toClone = s.nodes.filter((n) => ids.includes(n.id))
-        const clones = toClone.map((src) => {
-          const newId = `n_${ulid()}`
-          newIds.push(newId)
-          return {
-            ...src,
-            id: newId,
-            position: { x: src.position.x + offset.x, y: src.position.y + offset.y },
-            data: { ...src.data, style: src.data.style ? { ...src.data.style } : undefined },
-          }
-        })
-        return { nodes: [...s.nodes, ...clones], selectedNodeIds: newIds }
+        // Clone the requested nodes AND any descendants (so duplicating a
+        // container duplicates its contents).
+        const cloneSet = new Set<string>()
+        for (const id of ids) {
+          if (s.nodes.some((n) => n.id === id)) cloneSet.add(id)
+          for (const d of descendantIds(id, s.nodes)) cloneSet.add(d)
+        }
+        const idMap = new Map<string, string>()
+        for (const id of cloneSet) idMap.set(id, `n_${ulid()}`)
+
+        const clones = s.nodes
+          .filter((n) => cloneSet.has(n.id))
+          .map((src) => {
+            const newId = idMap.get(src.id)!
+            newIds.push(newId)
+            const parentCloned = src.parentId != null && cloneSet.has(src.parentId)
+            const newParent = parentCloned ? idMap.get(src.parentId!)! : (src.parentId ?? null)
+            // Offset only the roots of the duplicated forest (parent not cloned);
+            // nested children keep their parent-relative position so internal
+            // layout is preserved.
+            const position = parentCloned
+              ? { ...src.position }
+              : { x: src.position.x + offset.x, y: src.position.y + offset.y }
+            return {
+              ...src,
+              id: newId,
+              parentId: newParent,
+              position,
+              data: { ...src.data, style: src.data.style ? { ...src.data.style } : undefined },
+            }
+          })
+        // Select the cloned versions of the originally-requested nodes.
+        const selected = ids.map((id) => idMap.get(id)).filter((x): x is string => !!x)
+        return { nodes: [...s.nodes, ...clones], selectedNodeIds: selected }
       })
       return newIds
+    },
+
+    groupNodes(ids) {
+      const state = get()
+      const byId = indexNodes(state.nodes)
+      // Only group nodes that exist and are currently top-level.
+      const members = ids
+        .map((id) => state.nodes.find((n) => n.id === id))
+        .filter((n): n is GraffelNode => !!n && (n.parentId ?? null) === null)
+      if (members.length === 0) return null
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      for (const n of members) {
+        const r = absoluteRect(n, byId)
+        minX = Math.min(minX, r.x); minY = Math.min(minY, r.y)
+        maxX = Math.max(maxX, r.x + r.w); maxY = Math.max(maxY, r.y + r.h)
+      }
+      const PAD = 24
+      const gx = minX - PAD, gy = minY - PAD
+      const def = getShape('basic:group')
+      const gid = `n_${ulid()}`
+      const group: GraffelNode = {
+        id: gid,
+        type: 'basic:group',
+        parentId: null,
+        position: { x: gx, y: gy },
+        size: { w: maxX - minX + 2 * PAD, h: maxY - minY + 2 * PAD },
+        data: { label: '', style: def?.defaultStyle ? { ...def.defaultStyle } : undefined },
+      }
+      const memberIds = new Set(members.map((m) => m.id))
+      snapshot(null)
+      set((s) => ({
+        // Container first so it precedes its children (React Flow ordering).
+        nodes: [
+          group,
+          ...s.nodes.map((n) =>
+            memberIds.has(n.id)
+              ? { ...n, parentId: gid, position: { x: n.position.x - gx, y: n.position.y - gy } }
+              : n,
+          ),
+        ],
+        selectedNodeIds: [gid],
+      }))
+      return gid
+    },
+
+    ungroupNodes(groupId) {
+      const state = get()
+      const group = state.nodes.find((n) => n.id === groupId)
+      if (!group) return
+      const newParent = group.parentId ?? null
+      const freed: string[] = []
+      snapshot(null)
+      set((s) => {
+        const nodes = s.nodes
+          .filter((n) => n.id !== groupId)
+          .map((n) => {
+            if ((n.parentId ?? null) !== groupId) return n
+            freed.push(n.id)
+            // Lift one level up: child's new position = child(rel to group) + group(rel to its parent).
+            return {
+              ...n,
+              parentId: newParent,
+              position: { x: n.position.x + group.position.x, y: n.position.y + group.position.y },
+            }
+          })
+        return { nodes, selectedNodeIds: freed }
+      })
+    },
+
+    setNodeParent(id, parentId) {
+      const state = get()
+      const node = state.nodes.find((n) => n.id === id)
+      if (!node) return
+      if (parentId === id) return
+      if ((node.parentId ?? null) === (parentId ?? null)) return
+      const byId = indexNodes(state.nodes)
+      if (parentId && !byId.has(parentId)) return
+      // Prevent cycles: can't nest a node inside one of its own descendants.
+      if (parentId && descendantIds(id, state.nodes).has(parentId)) return
+      const abs = absolutePosition(node, byId)
+      const parentAbs = parentId ? absolutePosition(byId.get(parentId)!, byId) : { x: 0, y: 0 }
+      const newPos = { x: abs.x - parentAbs.x, y: abs.y - parentAbs.y }
+      snapshot(null)
+      set((s) => ({
+        nodes: s.nodes.map((n) =>
+          n.id === id ? { ...n, parentId: parentId ?? null, position: newPos } : n,
+        ),
+      }))
     },
 
     nudgeNodes(ids, delta) {
@@ -350,6 +468,10 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       snapshot(null)
       set((s) => {
         const killedNodes = new Set(selectedNodeIds)
+        // Deleting a container takes its contents (undo restores).
+        for (const id of selectedNodeIds) {
+          for (const d of descendantIds(id, s.nodes)) killedNodes.add(d)
+        }
         const killedEdges = new Set(selectedEdgeIds)
         const remainingNodes = s.nodes.filter((n) => !killedNodes.has(n.id))
         const remainingEdges = s.edges

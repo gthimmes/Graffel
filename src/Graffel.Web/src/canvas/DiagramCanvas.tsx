@@ -20,6 +20,15 @@ import {
   saveToLocalStorage,
 } from '../store/persistence'
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
+import {
+  absoluteRect,
+  descendantIds,
+  indexNodes,
+  innermostContainerAt,
+  sortNodesByDepth,
+} from './nesting'
+import { getShape, resolveIsContainer } from '../shapes/registry'
+import type { GraffelNode } from '../format/types'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
 import { EdgeContextMenu } from './EdgeContextMenu'
@@ -51,7 +60,8 @@ export function DiagramCanvas() {
   const closeEdgeMenu = useEdgeMenuStore((s) => s.close)
 
   const rfNodes = useMemo(
-    () => nodes.map((n) => ({
+    // Parents must precede their children in the array (React Flow requirement).
+    () => sortNodesByDepth(nodes).map((n) => ({
       ...toReactFlowNode(n),
       selected: selectedNodeIds.includes(n.id),
     })),
@@ -70,6 +80,9 @@ export function DiagramCanvas() {
   const selectAll = useDiagramStore((s) => s.selectAll)
   const duplicateNodes = useDiagramStore((s) => s.duplicateNodes)
   const nudgeNodes = useDiagramStore((s) => s.nudgeNodes)
+  const groupNodes = useDiagramStore((s) => s.groupNodes)
+  const ungroupNodes = useDiagramStore((s) => s.ungroupNodes)
+  const setNodeParent = useDiagramStore((s) => s.setNodeParent)
 
   const rf = useReactFlow()
   const { screenToFlowPosition } = rf
@@ -140,7 +153,9 @@ export function DiagramCanvas() {
       if (change.type === 'position' && change.position) {
         const state = useDiagramStore.getState()
         const dragged = state.nodes.find((n) => n.id === change.id)
-        if (dragged) {
+        // Nested children move in parent-relative coords; the snap/guide math
+        // assumes absolute coords, so skip it for them and write through as-is.
+        if (dragged && (dragged.parentId ?? null) === null) {
           const others: IdRect[] = state.nodes
             .filter((n) => n.id !== change.id)
             .map((n) => ({
@@ -208,6 +223,23 @@ export function DiagramCanvas() {
     if (!isHandleSide(sourceHandle) || !isHandleSide(targetHandle)) return
     addEdge(source, target, { sourceHandle, targetHandle })
   }, [addEdge])
+
+  // Drag-into / drag-out: when a node is dropped, nest it in the innermost
+  // container under its center, or release it if dropped outside any container.
+  const onNodeDragStop = useCallback((_e: React.MouseEvent, node: { id: string }) => {
+    const state = useDiagramStore.getState()
+    const dragged = state.nodes.find((n) => n.id === node.id)
+    if (!dragged) return
+    const byId = indexNodes(state.nodes)
+    const rect = absoluteRect(dragged, byId)
+    const exclude = new Set<string>([dragged.id, ...descendantIds(dragged.id, state.nodes)])
+    const isContainer = (n: GraffelNode) => resolveIsContainer(getShape(n.type))
+    const target = innermostContainerAt(rect, state.nodes, byId, { isContainer, excludeIds: exclude })
+    const targetId = target?.id ?? null
+    if (targetId !== (dragged.parentId ?? null)) {
+      setNodeParent(dragged.id, targetId)
+    }
+  }, [setNodeParent])
 
   const onDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -291,6 +323,27 @@ export function DiagramCanvas() {
         return
       }
 
+      // Group (Cmd/Ctrl+G) / Ungroup (Cmd/Ctrl+Shift+G).
+      if (mod && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault()
+        const st = useDiagramStore.getState()
+        if (e.shiftKey) {
+          // Ungroup every selected container.
+          for (const id of st.selectedNodeIds) {
+            const node = st.nodes.find((n) => n.id === id)
+            if (node && resolveIsContainer(getShape(node.type))) ungroupNodes(id)
+          }
+        } else {
+          // Group needs at least two top-level nodes.
+          const topLevel = st.selectedNodeIds.filter((id) => {
+            const n = st.nodes.find((x) => x.id === id)
+            return n && (n.parentId ?? null) === null
+          })
+          if (topLevel.length >= 2) groupNodes(topLevel)
+        }
+        return
+      }
+
       // Delete / Escape.
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = useDiagramStore.getState()
@@ -353,7 +406,7 @@ export function DiagramCanvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [removeSelection, selectNodes, selectEdges, undo, redo, selectAll, duplicateNodes, nudgeNodes])
+  }, [removeSelection, selectNodes, selectEdges, undo, redo, selectAll, duplicateNodes, nudgeNodes, groupNodes, ungroupNodes])
 
   return (
     <div
@@ -373,6 +426,7 @@ export function DiagramCanvas() {
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
+        onNodeDragStop={readOnly ? undefined : onNodeDragStop}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable

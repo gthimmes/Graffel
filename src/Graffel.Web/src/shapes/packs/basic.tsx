@@ -50,6 +50,33 @@ const textShape: ShapeRenderer = ({ width, height }) => (
   </ShapeSvg>
 )
 
+// Group / Frame container: a light dashed box that holds nested shapes. Drawn in
+// real px (not the 0–100 viewBox) so the dash + corner radius stay crisp at any
+// size. preserveAspectRatio="none" keeps it filling the node box.
+const group: ShapeRenderer = ({ width, height, fill, borderColor }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox={`0 0 ${width} ${height}`}
+    preserveAspectRatio="none"
+    style={{ display: 'block', overflow: 'visible' }}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect
+      x={STROKE / 2}
+      y={STROKE / 2}
+      width={Math.max(0, width - STROKE)}
+      height={Math.max(0, height - STROKE)}
+      rx={8}
+      ry={8}
+      fill={fill}
+      stroke={borderColor}
+      strokeWidth={STROKE}
+      strokeDasharray="6 4"
+    />
+  </svg>
+)
+
 export const BASIC_PACK: Pack = {
   id: 'basic',
   label: 'Basic',
@@ -87,6 +114,17 @@ export const BASIC_PACK: Pack = {
       defaultStyle: { fill: 'transparent', borderColor: 'transparent' },
       render: textShape,
       legacyTestId: 'text',
+    },
+    {
+      id: 'basic:group', packId: 'basic', label: 'Group / Frame',
+      keywords: ['group', 'frame', 'container', 'box'],
+      defaultSize: { w: 240, h: 160 },
+      defaultStyle: { fill: 'rgba(148,163,184,0.06)', borderColor: '#94a3b8' },
+      render: group,
+      fit: 'fill',
+      isContainer: true,
+      defaultLabelPosition: 'top',
+      legacyTestId: 'group',
     },
   ],
 }

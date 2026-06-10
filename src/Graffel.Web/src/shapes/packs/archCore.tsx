@@ -270,7 +270,7 @@ export const ARCH_CORE_PACK: Pack = {
     { id: 'arch-core:queue',         packId: 'arch-core', label: 'Queue',         keywords: ['message bus', 'mq', 'pubsub'], defaultSize: { w: 180, h: 80 }, defaultStyle: { fill: FILL_SOFT_PURPLE, borderColor: '#7c3aed' }, render: queue,        legacyTestId: 'queue',
       handlePositions: { top: { x: 50, y: 32 }, right: { x: 94, y: 50 }, bottom: { x: 50, y: 68 }, left: { x: 6, y: 50 } } },
     { id: 'arch-core:boundary',      packId: 'arch-core', label: 'Boundary',      keywords: ['group', 'container', 'context'], defaultSize: { w: 320, h: 200 }, defaultStyle: { fill: 'rgba(96,165,250,0.08)', borderColor: '#60a5fa' }, render: boundary,     legacyTestId: 'boundary',
-      fit: 'fill', defaultLabelPosition: 'top' },
+      fit: 'fill', defaultLabelPosition: 'top', isContainer: true },
     { id: 'arch-core:server',        packId: 'arch-core', label: 'Server',        keywords: ['machine', 'host', 'vm'],    defaultSize: { w: 110, h: 140 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: server,
       handlePositions: { top: { x: 50, y: 8 }, right: { x: 80, y: 50 }, bottom: { x: 50, y: 92 }, left: { x: 20, y: 50 } } },
     { id: 'arch-core:storage',       packId: 'arch-core', label: 'Storage',       keywords: ['blob', 'object store'],     defaultSize: { w: 130, h: 130 }, defaultStyle: { fill: FILL_NEUTRAL,     borderColor: ARCH },     render: storage,

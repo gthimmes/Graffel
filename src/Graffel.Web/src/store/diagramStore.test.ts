@@ -99,6 +99,96 @@ describe('diagramStore', () => {
     })
   })
 
+  describe('grouping', () => {
+    const PAD = 24
+
+    it('groupNodes wraps top-level nodes in a padded container with relative child positions', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 100, y: 100 }) // 160x80 default
+      s.addNode('rectangle', { x: 300, y: 200 })
+      const [a, b] = useDiagramStore.getState().nodes
+      const gid = s.groupNodes([a!.id, b!.id])!
+      const st = useDiagramStore.getState()
+      const group = st.nodes.find((n) => n.id === gid)!
+      expect(group.type).toBe('basic:group')
+      // bbox x: 100..460, y: 100..280 → container origin is bbox-min minus PAD.
+      expect(group.position).toEqual({ x: 100 - PAD, y: 100 - PAD })
+      expect(group.size).toEqual({ w: (460 - 100) + 2 * PAD, h: (280 - 100) + 2 * PAD })
+      const ca = st.nodes.find((n) => n.id === a!.id)!
+      expect(ca.parentId).toBe(gid)
+      expect(ca.position).toEqual({ x: PAD, y: PAD }) // 100 - (100-PAD)
+      expect(st.selectedNodeIds).toEqual([gid])
+    })
+
+    it('ungroupNodes restores absolute positions and removes the container', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 100, y: 100 })
+      s.addNode('rectangle', { x: 300, y: 200 })
+      const [a, b] = useDiagramStore.getState().nodes
+      const gid = s.groupNodes([a!.id, b!.id])!
+      s.ungroupNodes(gid)
+      const st = useDiagramStore.getState()
+      expect(st.nodes.find((n) => n.id === gid)).toBeUndefined()
+      const ca = st.nodes.find((n) => n.id === a!.id)!
+      expect(ca.parentId ?? null).toBeNull()
+      expect(ca.position).toEqual({ x: 100, y: 100 })
+    })
+
+    it('deleting a container removes its descendants, and undo restores them', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 100, y: 100 })
+      s.addNode('rectangle', { x: 300, y: 200 })
+      const [a, b] = useDiagramStore.getState().nodes
+      const gid = s.groupNodes([a!.id, b!.id])!
+      s.selectNodes([gid])
+      s.removeSelection()
+      expect(useDiagramStore.getState().nodes).toHaveLength(0)
+      s.undo()
+      expect(useDiagramStore.getState().nodes).toHaveLength(3)
+    })
+
+    it('duplicating a container clones its children with remapped parentId', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 100, y: 100 })
+      const a = useDiagramStore.getState().nodes[0]!
+      const gid = s.groupNodes([a.id])!
+      s.duplicateNodes([gid])
+      const st = useDiagramStore.getState()
+      expect(st.nodes).toHaveLength(4) // group+child + clonedGroup+clonedChild
+      const groups = st.nodes.filter((n) => n.type === 'basic:group')
+      expect(groups).toHaveLength(2)
+      const newGroup = groups.find((g) => g.id !== gid)!
+      expect(st.nodes.filter((n) => n.parentId === newGroup.id)).toHaveLength(1)
+    })
+
+    it('setNodeParent nests a node and converts its position to be parent-relative', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('basic:group', { x: 50, y: 50 })
+      s.addNode('rectangle', { x: 200, y: 150 })
+      const [g, r] = useDiagramStore.getState().nodes
+      s.setNodeParent(r!.id, g!.id)
+      const cr = useDiagramStore.getState().nodes.find((n) => n.id === r!.id)!
+      expect(cr.parentId).toBe(g!.id)
+      expect(cr.position).toEqual({ x: 150, y: 100 })
+      // Unparent restores absolute coords.
+      s.setNodeParent(r!.id, null)
+      const cr2 = useDiagramStore.getState().nodes.find((n) => n.id === r!.id)!
+      expect(cr2.parentId ?? null).toBeNull()
+      expect(cr2.position).toEqual({ x: 200, y: 150 })
+    })
+
+    it('setNodeParent refuses to nest a node inside its own descendant', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('basic:group', { x: 0, y: 0 })
+      s.addNode('basic:group', { x: 20, y: 20 })
+      const [outer, inner] = useDiagramStore.getState().nodes
+      s.setNodeParent(inner!.id, outer!.id) // inner now child of outer
+      s.setNodeParent(outer!.id, inner!.id) // would create a cycle — must no-op
+      const co = useDiagramStore.getState().nodes.find((n) => n.id === outer!.id)!
+      expect(co.parentId ?? null).toBeNull()
+    })
+  })
+
   describe('removeSelection', () => {
     it('removes selected nodes and their incident edges', () => {
       const s = useDiagramStore.getState()

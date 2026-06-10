@@ -57,6 +57,13 @@ export interface ShapeDef {
   /** Optional short test id for E2E specs that predate pack-qualified ids (e.g. 'service'). */
   legacyTestId?: string
   /**
+   * When true, instances act as containers: other nodes can be nested inside
+   * them (via Ctrl+G grouping or drag-into), move/resize with the container, and
+   * delete with it. Box-like shapes only (e.g. basic:group, arch-core:boundary,
+   * cloud:region). See resolveIsContainer.
+   */
+  isContainer?: boolean
+  /**
    * Tight bounding box of the drawn silhouette in 0–100 viewBox coords. When
    * set, the four connection anchors are derived from it (side midpoints), so
    * lines meet the icon edge instead of the icon's square. Cheaper to author

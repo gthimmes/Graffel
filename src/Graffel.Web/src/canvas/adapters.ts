@@ -11,7 +11,7 @@ import { strokeDashArray, type EdgeStyle } from '../format/style'
 import { markerRef } from './EdgeMarkers'
 
 export function toReactFlowNode(n: GraffelNode): RFNode {
-  return {
+  const rf: RFNode = {
     id: n.id,
     type: 'shape',
     position: { ...n.position },
@@ -26,6 +26,15 @@ export function toReactFlowNode(n: GraffelNode): RFNode {
       style: n.data.style,
     },
   }
+  // Nested nodes: React Flow keeps a child's position relative to its parent, so
+  // dragging the parent moves the child. (Our store already stores child
+  // positions relative to the parent, matching RF.) We deliberately do NOT set
+  // extent:'parent' — that would trap the child inside the box and break the
+  // "drag a shape out of the container to release it" interaction.
+  if (n.parentId) {
+    rf.parentId = n.parentId
+  }
+  return rf
 }
 
 export function toReactFlowEdge(e: GraffelEdge): RFEdge {

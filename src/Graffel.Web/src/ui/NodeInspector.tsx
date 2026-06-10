@@ -8,7 +8,7 @@ import {
   type TextHAlign,
   type TextVAlign,
 } from '../format/style'
-import { getShape, resolveDefaultLabelPosition } from '../shapes/registry'
+import { getShape, resolveDefaultLabelPosition, resolveIsContainer } from '../shapes/registry'
 import { ColorPicker, Field, Group, Row, Segmented } from './controls'
 
 const LABEL_POSITIONS: { value: LabelPosition; label: string }[] = [
@@ -24,14 +24,30 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
   const updateNodeLabel = useDiagramStore((s) => s.updateNodeLabel)
   const updateNodeSize = useDiagramStore((s) => s.updateNodeSize)
   const updateNodeStyle = useDiagramStore((s) => s.updateNodeStyle)
+  const ungroupNodes = useDiagramStore((s) => s.ungroupNodes)
 
   if (!node) return null
+  const def = getShape(node.type)
   const style = (node.data.style ?? {}) as NodeStyle
-  const labelPos = style.labelPosition ?? resolveDefaultLabelPosition(getShape(node.type))
+  const labelPos = style.labelPosition ?? resolveDefaultLabelPosition(def)
+  const isContainer = resolveIsContainer(def)
 
   return (
     <div className="inspector-body" data-testid="node-inspector">
       <h3>{node.type.charAt(0).toUpperCase() + node.type.slice(1)}</h3>
+
+      {isContainer ? (
+        <Group title="Container">
+          <button
+            type="button"
+            className="inspector-button"
+            onClick={() => ungroupNodes(nodeId)}
+            data-testid="ni-ungroup"
+          >
+            Ungroup
+          </button>
+        </Group>
+      ) : null}
 
       <Group title="Text">
         <Field label="Label">

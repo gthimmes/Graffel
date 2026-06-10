@@ -26,6 +26,12 @@ export interface GraffelNode {
   id: string
   /** Shape id from the registry. Either pack-qualified ('basic:rectangle') or a v1 legacy id ('rectangle'). */
   type: string
+  /**
+   * Containment parent (a container node's id) or null/absent for top-level.
+   * When set, `position` is RELATIVE to the parent (matching React Flow), so
+   * dragging the parent moves children without the child positions drifting.
+   */
+  parentId?: string | null
   position: { x: number; y: number }
   size: { w: number; h: number }
   data: {

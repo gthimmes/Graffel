@@ -65,6 +65,11 @@ export function resolveDefaultLabelPosition(def: ShapeDef | undefined): LabelPos
   return resolveFit(def) === 'fill' ? 'center' : 'top'
 }
 
+/** Whether a shape's instances act as containers (can hold nested children). */
+export function resolveIsContainer(def: ShapeDef | undefined): boolean {
+  return def?.isContainer === true
+}
+
 /** The shape's silhouette bbox in 0–100 viewBox coords (explicit → measured →
  *  full box). Used to hug outside labels to the drawn icon, not the node box. */
 export function resolveIconBounds(def: ShapeDef | undefined): { x: number; y: number; w: number; h: number } {
