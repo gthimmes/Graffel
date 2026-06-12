@@ -12,7 +12,7 @@ import {
   type NodeStyle,
 } from '../format/style'
 import { useDiagramStore } from '../store/diagramStore'
-import { getShape, resolveAnchors, resolveDefaultLabelPosition, resolveFit, resolveIconBounds } from '../shapes/registry'
+import { getShape, resolveAnchors, resolveDefaultLabelPosition, resolveFit, resolveIconBounds, resolveIsContainer } from '../shapes/registry'
 import { anchorToBoxPercent } from './anchors'
 
 interface ShapeNodeData extends Record<string, unknown> {
@@ -21,6 +21,9 @@ interface ShapeNodeData extends Record<string, unknown> {
   width: number
   height: number
   style?: NodeStyle
+  /** v3.14 drill-down (set by the canvas view layer). */
+  collapsed?: boolean
+  childCount?: number
 }
 
 const HANDLE_POSITIONS = [
@@ -105,7 +108,7 @@ function labelBoxStyle(pos: LabelPosition, isTextShape: boolean, r: IconRect): C
 }
 
 export function ShapeNode({ id, data, selected }: NodeProps) {
-  const { label, shapeId, width, height, style } = data as ShapeNodeData
+  const { label, shapeId, width, height, style, collapsed, childCount } = data as ShapeNodeData
   const def = getShape(shapeId)
   const updateNodeLabel = useDiagramStore((s) => s.updateNodeLabel)
   const updateNodeSize = useDiagramStore((s) => s.updateNodeSize)
@@ -148,6 +151,7 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
   const textColor   = merged.textColor ?? '#1f2330'
 
   const isTextShape = shapeId === 'basic:text' || shapeId === 'text'
+  const isContainer = resolveIsContainer(def)
   const fit = resolveFit(def)
   const labelPos: LabelPosition = merged.labelPosition ?? resolveDefaultLabelPosition(def)
   const isCenter = labelPos === 'center'
@@ -199,7 +203,12 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
           fontWeight: fontWeightCss(merged.fontWeight),
           textAlign: merged.textHAlign ?? 'center',
         }}
-        onDoubleClick={() => !readOnly && beginEditNode(id)}
+        // Containers drill in on double-click — handled at the canvas level via
+        // React Flow's onNodeDoubleClick (fires reliably in read-only too); their
+        // labels edit via Enter/F2/typing. Other shapes double-click to edit.
+        onDoubleClick={() => {
+          if (!isContainer && !readOnly) beginEditNode(id)
+        }}
         data-testid={def?.legacyTestId ? `shape-${def.legacyTestId}` : `shape-${shapeId.replace(/[:]/g, '-')}`}
         data-shape-id={shapeId}
       >
@@ -273,6 +282,13 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
               : null
           )}
         </div>
+
+        {/* Collapsed-container badge: how many shapes are tucked inside. */}
+        {isContainer && collapsed && (childCount ?? 0) > 0 ? (
+          <span className="graffel-collapse-badge" data-testid="collapse-badge" title={`${childCount} hidden — double-click to enter`}>
+            ▸ {childCount}
+          </span>
+        ) : null}
       </div>
     </>
   )

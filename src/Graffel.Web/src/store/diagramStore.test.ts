@@ -189,6 +189,68 @@ describe('diagramStore', () => {
     })
   })
 
+  describe('drill-down', () => {
+    it('enterContainer sets the view root for a container, and is a no-op otherwise', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      const rid = s.addNode('rectangle', { x: 200, y: 0 })
+      s.enterContainer(rid) // not a container
+      expect(useDiagramStore.getState().viewRootId).toBeNull()
+      s.enterContainer('nope') // unknown id
+      expect(useDiagramStore.getState().viewRootId).toBeNull()
+      s.enterContainer(gid)
+      expect(useDiagramStore.getState().viewRootId).toBe(gid)
+      s.exitToLevel(null)
+      expect(useDiagramStore.getState().viewRootId).toBeNull()
+    })
+
+    it('enterContainer works in read-only mode (share-link navigation)', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.setReadOnly(true)
+      s.enterContainer(gid)
+      expect(useDiagramStore.getState().viewRootId).toBe(gid)
+    })
+
+    it('addNode parents new nodes to the current view root', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 100, y: 100 })
+      s.enterContainer(gid)
+      const rid = s.addNode('rectangle', { x: 30, y: 40 })
+      const r = useDiagramStore.getState().nodes.find((n) => n.id === rid)!
+      expect(r.parentId).toBe(gid)
+      expect(r.position).toEqual({ x: 30, y: 40 }) // already level-relative
+    })
+
+    it('toggleCollapsed flips the flag and is undoable', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.toggleCollapsed(gid)
+      expect((useDiagramStore.getState().nodes[0]!.data as { collapsed?: boolean }).collapsed).toBe(true)
+      s.undo()
+      expect((useDiagramStore.getState().nodes[0]!.data as { collapsed?: boolean }).collapsed).toBeUndefined()
+    })
+
+    it('undo that removes the current view root resets the view to the diagram root', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.enterContainer(gid)
+      s.undo() // un-create the group while inside it
+      const st = useDiagramStore.getState()
+      expect(st.nodes).toHaveLength(0)
+      expect(st.viewRootId).toBeNull()
+    })
+
+    it('loadDocument resets the view root', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.enterContainer(gid)
+      const doc = s.toDocument()
+      s.loadDocument(doc)
+      expect(useDiagramStore.getState().viewRootId).toBeNull()
+    })
+  })
+
   describe('z-order', () => {
     function threeNodes() {
       const s = useDiagramStore.getState()

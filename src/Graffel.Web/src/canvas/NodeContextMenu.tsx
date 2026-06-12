@@ -21,6 +21,8 @@ export function NodeContextMenu({ x, y, onClose }: NodeContextMenuProps) {
   const removeSelection = useDiagramStore((s) => s.removeSelection)
   const groupNodes = useDiagramStore((s) => s.groupNodes)
   const ungroupNodes = useDiagramStore((s) => s.ungroupNodes)
+  const enterContainer = useDiagramStore((s) => s.enterContainer)
+  const toggleCollapsed = useDiagramStore((s) => s.toggleCollapsed)
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -46,8 +48,9 @@ export function NodeContextMenu({ x, y, onClose }: NodeContextMenuProps) {
     const n = nodes.find((x) => x.id === id)
     return n && (n.parentId ?? null) === null
   })
-  const soleContainer =
-    ids.length === 1 && resolveIsContainer(getShape(nodes.find((n) => n.id === ids[0])?.type ?? ''))
+  const soleNode = ids.length === 1 ? nodes.find((n) => n.id === ids[0]) : undefined
+  const soleContainer = !!soleNode && resolveIsContainer(getShape(soleNode.type))
+  const soleCollapsed = soleContainer && (soleNode!.data as { collapsed?: boolean }).collapsed === true
 
   return (
     <div
@@ -56,6 +59,17 @@ export function NodeContextMenu({ x, y, onClose }: NodeContextMenuProps) {
       role="menu"
       data-testid="node-context-menu"
     >
+      {soleContainer ? (
+        <>
+          <button type="button" role="menuitem" onClick={() => run(() => enterContainer(ids[0]!))} data-testid="node-ctx-enter">
+            Enter container
+          </button>
+          <button type="button" role="menuitem" onClick={() => run(() => toggleCollapsed(ids[0]!))} data-testid="node-ctx-collapse">
+            {soleCollapsed ? 'Expand contents' : 'Collapse contents'}
+          </button>
+          <div className="ctx-divider" />
+        </>
+      ) : null}
       <button type="button" role="menuitem" onClick={() => run(() => bringToFront(ids))} data-testid="node-ctx-front">
         Bring to front
       </button>

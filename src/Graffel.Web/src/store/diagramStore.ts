@@ -10,7 +10,7 @@ import type {
   GraffelNode,
   HandleSide,
 } from '../format/types'
-import { allShapeIds, getShape } from '../shapes/registry'
+import { allShapeIds, getShape, resolveIsContainer } from '../shapes/registry'
 import { absolutePosition, absoluteRect, descendantIds, indexNodes } from '../canvas/nesting'
 
 const FALLBACK_SIZE = { w: 160, h: 80 }
@@ -42,6 +42,8 @@ interface DiagramState {
   editingNodeId: string | null
   /** Seed text for an edit session: a string replaces the label; null selects-all. */
   editSeed: string | null
+  /** v3.14 drill-down: the container whose interior the canvas is showing (null = root). */
+  viewRootId: string | null
 
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
@@ -67,6 +69,12 @@ interface DiagramState {
   sendToBack: (ids: string[]) => void
   bringForward: (ids: string[]) => void
   sendBackward: (ids: string[]) => void
+  /** Drill into a container (navigation — allowed in read-only share views). */
+  enterContainer: (id: string) => void
+  /** Jump to a level: a container id on the current chain, or null for the root. */
+  exitToLevel: (id: string | null) => void
+  /** Collapse/expand a container's contents at its parent level (persisted, undoable). */
+  toggleCollapsed: (id: string) => void
   updateEdgeLabel: (id: string, label: string) => void
   updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeType: (id: string, type: EdgeType) => void
@@ -107,7 +115,7 @@ interface DiagramState {
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
   | 'documentId' | 'title' | 'driveFileId' | 'readOnly' | 'snapGrid'
-  | 'editingNodeId' | 'editSeed'
+  | 'editingNodeId' | 'editSeed' | 'viewRootId'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -123,6 +131,7 @@ function emptyState(): Pick<DiagramState,
     snapGrid: false,
     editingNodeId: null,
     editSeed: null,
+    viewRootId: null,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -169,6 +178,9 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       const node: GraffelNode = {
         id,
         type: shapeId,
+        // New shapes land in the level being viewed (drill-down). Positions in a
+        // drilled view are already parent-relative, so no conversion is needed.
+        parentId: get().viewRootId,
         position,
         size: { ...(def?.defaultSize ?? FALLBACK_SIZE) },
         data: {
@@ -506,6 +518,34 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       })
     },
 
+    enterContainer(id) {
+      const node = get().nodes.find((n) => n.id === id)
+      if (!node || !resolveIsContainer(getShape(node.type))) return
+      // Navigation, not mutation — deliberately allowed in read-only share views.
+      set({ viewRootId: id, selectedNodeIds: [], selectedEdgeIds: [], editingNodeId: null, editSeed: null })
+    },
+
+    exitToLevel(id) {
+      if (id !== null && !get().nodes.some((n) => n.id === id)) return
+      set({ viewRootId: id, selectedNodeIds: [], selectedEdgeIds: [] })
+    },
+
+    toggleCollapsed(id) {
+      if (get().readOnly) return
+      const node = get().nodes.find((n) => n.id === id)
+      if (!node) return
+      snapshot(null)
+      set((s) => ({
+        nodes: s.nodes.map((n) => {
+          if (n.id !== id) return n
+          const data = { ...n.data } as { collapsed?: boolean } & typeof n.data
+          if (data.collapsed) delete data.collapsed
+          else data.collapsed = true
+          return { ...n, data }
+        }),
+      }))
+    },
+
     selectNodes(ids) { set({ selectedNodeIds: ids }) },
     selectEdges(ids) { set({ selectedEdgeIds: ids }) },
     selectAll() {
@@ -578,6 +618,8 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         _lastCoalesceAt: 0,
         selectedNodeIds: [],
         selectedEdgeIds: [],
+        // If the level we were inside no longer exists, surface back to the root.
+        viewRootId: s.viewRootId && prev.nodes.some((n) => n.id === s.viewRootId) ? s.viewRootId : null,
       })
     },
 
@@ -602,6 +644,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         _lastCoalesceAt: 0,
         selectedNodeIds: [],
         selectedEdgeIds: [],
+        viewRootId: s.viewRootId && next.nodes.some((n) => n.id === s.viewRootId) ? s.viewRootId : null,
       })
     },
 
@@ -636,6 +679,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         selectedEdgeIds: [],
         editingNodeId: null,
         editSeed: null,
+        viewRootId: null,
         _past: [],
         _future: [],
         _lastCoalesceKey: null,

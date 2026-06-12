@@ -25,12 +25,15 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
   const updateNodeSize = useDiagramStore((s) => s.updateNodeSize)
   const updateNodeStyle = useDiagramStore((s) => s.updateNodeStyle)
   const ungroupNodes = useDiagramStore((s) => s.ungroupNodes)
+  const enterContainer = useDiagramStore((s) => s.enterContainer)
+  const toggleCollapsed = useDiagramStore((s) => s.toggleCollapsed)
 
   if (!node) return null
   const def = getShape(node.type)
   const style = (node.data.style ?? {}) as NodeStyle
   const labelPos = style.labelPosition ?? resolveDefaultLabelPosition(def)
   const isContainer = resolveIsContainer(def)
+  const collapsed = (node.data as { collapsed?: boolean }).collapsed === true
 
   return (
     <div className="inspector-body" data-testid="node-inspector">
@@ -38,6 +41,22 @@ export function NodeInspector({ nodeId }: { nodeId: string }) {
 
       {isContainer ? (
         <Group title="Container">
+          <button
+            type="button"
+            className="inspector-button"
+            onClick={() => enterContainer(nodeId)}
+            data-testid="ni-enter"
+          >
+            Enter container
+          </button>
+          <button
+            type="button"
+            className="inspector-button"
+            onClick={() => toggleCollapsed(nodeId)}
+            data-testid="ni-collapse"
+          >
+            {collapsed ? 'Expand contents' : 'Collapse contents'}
+          </button>
           <button
             type="button"
             className="inspector-button"

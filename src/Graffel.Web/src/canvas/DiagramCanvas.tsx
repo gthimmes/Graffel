@@ -40,6 +40,8 @@ import { SelectionToolbar } from '../ui/SelectionToolbar'
 import { useToolStore } from './toolStore'
 import { useNodeMenuStore } from './nodeMenuStore'
 import { NodeContextMenu } from './NodeContextMenu'
+import { remapEdgeForView, visibleNodeIds } from './drilldown'
+import { Breadcrumbs } from './Breadcrumbs'
 import { AlignmentGuides } from './AlignmentGuides'
 import { computeSnap, GRID_SIZE, type Guide, type IdRect } from './snap'
 
@@ -69,21 +71,50 @@ export function DiagramCanvas() {
   const openNodeMenu = useNodeMenuStore((s) => s.openAt)
   const closeNodeMenu = useNodeMenuStore((s) => s.close)
 
-  const rfNodes = useMemo(
+  const viewRootId = useDiagramStore((s) => s.viewRootId)
+
+  // Drill-down: only the current level's subtree renders (collapsed containers
+  // hide theirs); direct children of the view root become RF top-level nodes —
+  // their stored positions are already parent-relative, so no conversion.
+  const visible = useMemo(() => visibleNodeIds(nodes, viewRootId), [nodes, viewRootId])
+
+  const rfNodes = useMemo(() => {
+    const childCounts = new Map<string, number>()
+    for (const n of nodes) {
+      const p = n.parentId ?? null
+      if (p) childCounts.set(p, (childCounts.get(p) ?? 0) + 1)
+    }
     // Parents must precede their children in the array (React Flow requirement).
-    () => sortNodesByDepth(nodes).map((n) => ({
-      ...toReactFlowNode(n),
-      selected: selectedNodeIds.includes(n.id),
-    })),
-    [nodes, selectedNodeIds],
-  )
-  const rfEdges = useMemo(
-    () => edges.map((e) => ({
-      ...toReactFlowEdge(e),
-      selected: selectedEdgeIds.includes(e.id),
-    })),
-    [edges, selectedEdgeIds],
-  )
+    return sortNodesByDepth(nodes.filter((n) => visible.has(n.id))).map((n) => {
+      const rf = toReactFlowNode(
+        (n.parentId ?? null) === viewRootId ? { ...n, parentId: null } : n,
+      )
+      rf.data = {
+        ...rf.data,
+        collapsed: (n.data as { collapsed?: boolean }).collapsed === true,
+        childCount: childCounts.get(n.id) ?? 0,
+      }
+      return { ...rf, selected: selectedNodeIds.includes(n.id) }
+    })
+  }, [nodes, selectedNodeIds, visible, viewRootId])
+
+  const rfEdges = useMemo(() => {
+    const byId = indexNodes(nodes)
+    const out = []
+    for (const e of edges) {
+      // Remap endpoints to their visible stand-ins (e.g. a collapsed container);
+      // edges with an endpoint outside this level are not rendered.
+      const remap = remapEdgeForView(e, visible, byId)
+      if (!remap) continue
+      out.push({
+        ...toReactFlowEdge(e),
+        source: remap.source,
+        target: remap.target,
+        selected: selectedEdgeIds.includes(e.id),
+      })
+    }
+    return out
+  }, [edges, nodes, selectedEdgeIds, visible])
 
   const undo = useDiagramStore((s) => s.undo)
   const redo = useDiagramStore((s) => s.redo)
@@ -164,6 +195,15 @@ export function DiagramCanvas() {
     useDiagramStore.getState().setSnapGrid(loadSnapGrid())
   }, [loadDocument])
 
+  // Re-frame the viewport when entering/leaving a drill-down level (after the
+  // level's nodes have rendered).
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void rf.fitView({ padding: 0.2, duration: 200 })
+    }, 0)
+    return () => window.clearTimeout(t)
+  }, [viewRootId, rf])
+
   // Autosave on store changes (debounced).
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -183,11 +223,14 @@ export function DiagramCanvas() {
       if (change.type === 'position' && change.position) {
         const state = useDiagramStore.getState()
         const dragged = state.nodes.find((n) => n.id === change.id)
-        // Nested children move in parent-relative coords; the snap/guide math
-        // assumes absolute coords, so skip it for them and write through as-is.
-        if (dragged && (dragged.parentId ?? null) === null) {
+        // Snap applies to the level being viewed: nodes whose parent IS the view
+        // root move in that level's coordinate frame (which is what RF reports).
+        // Deeper-nested children move in their own parent's frame — skip those.
+        if (dragged && (dragged.parentId ?? null) === state.viewRootId) {
+          // Snap targets are the dragged node's level-siblings — same coordinate
+          // frame. (Nodes nested elsewhere store positions in a different frame.)
           const others: IdRect[] = state.nodes
-            .filter((n) => n.id !== change.id)
+            .filter((n) => n.id !== change.id && (n.parentId ?? null) === state.viewRootId)
             .map((n) => ({
               id: n.id,
               x: n.position.x,
@@ -255,21 +298,35 @@ export function DiagramCanvas() {
   }, [addEdge])
 
   // Drag-into / drag-out: when a node is dropped, nest it in the innermost
-  // container under its center, or release it if dropped outside any container.
+  // container under its center, or release it to the current level if dropped
+  // outside any container. (In a drilled view, "released" means re-parented to
+  // the level's container — a drag can never escape the level.)
   const onNodeDragStop = useCallback((_e: React.MouseEvent, node: { id: string }) => {
     const state = useDiagramStore.getState()
     const dragged = state.nodes.find((n) => n.id === node.id)
     if (!dragged) return
     const byId = indexNodes(state.nodes)
     const rect = absoluteRect(dragged, byId)
+    const visibleNow = visibleNodeIds(state.nodes, state.viewRootId)
     const exclude = new Set<string>([dragged.id, ...descendantIds(dragged.id, state.nodes)])
-    const isContainer = (n: GraffelNode) => resolveIsContainer(getShape(n.type))
+    const isContainer = (n: GraffelNode) =>
+      visibleNow.has(n.id) && resolveIsContainer(getShape(n.type))
     const target = innermostContainerAt(rect, state.nodes, byId, { isContainer, excludeIds: exclude })
-    const targetId = target?.id ?? null
+    const targetId = target?.id ?? state.viewRootId
     if (targetId !== (dragged.parentId ?? null)) {
       setNodeParent(dragged.id, targetId)
     }
   }, [setNodeParent])
+
+  // Double-click a container → drill into it. Navigation, not mutation, so it is
+  // wired unconditionally (read-only share views stay explorable). Uses React
+  // Flow's own node event — a handler on the node's inner div doesn't fire
+  // reliably when nodes aren't draggable (read-only).
+  const onNodeDoubleClick = useCallback((_e: React.MouseEvent, node: { id: string }) => {
+    const st = useDiagramStore.getState()
+    const n = st.nodes.find((x) => x.id === node.id)
+    if (n && resolveIsContainer(getShape(n.type))) st.enterContainer(n.id)
+  }, [])
 
   // Right-click a node → select it (unless already in the selection) and open the
   // node context menu (z-order, duplicate, delete, group/ungroup).
@@ -394,6 +451,13 @@ export function DiagramCanvas() {
         return
       }
       if (e.key === 'Escape') {
+        const st = useDiagramStore.getState()
+        // With nothing selected, Esc climbs one drill-down level.
+        if (st.selectedNodeIds.length === 0 && st.selectedEdgeIds.length === 0 && st.viewRootId) {
+          const parent = st.nodes.find((n) => n.id === st.viewRootId)?.parentId ?? null
+          st.exitToLevel(parent)
+          return
+        }
         selectNodes([])
         selectEdges([])
         return
@@ -478,6 +542,7 @@ export function DiagramCanvas() {
         onConnect={readOnly ? undefined : onConnect}
         onNodeDragStop={readOnly ? undefined : onNodeDragStop}
         onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
+        onNodeDoubleClick={onNodeDoubleClick}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
@@ -486,6 +551,10 @@ export function DiagramCanvas() {
         panOnDrag={panning ? true : [1]}
         selectionOnDrag={!panning}
         selectionMode={SelectionMode.Partial}
+        // Double-click means "edit label" / "enter container" here, never zoom.
+        // (d3-zoom's dblclick handler also stopImmediatePropagation()s, which
+        // would swallow node double-clicks in read-only views.)
+        zoomOnDoubleClick={false}
         fitView
         proOptions={{ hideAttribution: true }}
       >
@@ -505,6 +574,7 @@ export function DiagramCanvas() {
       {nodeMenu ? (
         <NodeContextMenu x={nodeMenu.x} y={nodeMenu.y} onClose={closeNodeMenu} />
       ) : null}
+      <Breadcrumbs />
       <SelectionToolbar />
     </div>
   )

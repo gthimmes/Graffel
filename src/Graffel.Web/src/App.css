@@ -400,6 +400,70 @@ html, body, #root {
   background: var(--color-bg);
 }
 
+/* v3.14 drill-down breadcrumbs — top-left overlay showing the current level. */
+.graffel-breadcrumbs {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  font-size: 12px;
+  max-width: min(70%, 640px);
+  overflow: hidden;
+}
+
+.graffel-breadcrumbs .crumb {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.graffel-breadcrumbs button.crumb:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.graffel-breadcrumbs .crumb.is-current {
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: default;
+}
+
+.graffel-breadcrumbs .crumb-seg { display: inline-flex; align-items: center; gap: 2px; }
+.graffel-breadcrumbs .crumb-sep { color: var(--color-text-muted); opacity: 0.6; }
+
+/* Collapsed-container badge — count of shapes tucked inside. */
+.graffel-collapse-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-accent-soft, rgba(37, 99, 235, 0.12));
+  color: var(--color-accent, #2563eb);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  user-select: none;
+}
+
+.inspector-button + .inspector-button { margin-top: 6px; }
+
 /* On-canvas selection toolbar — floats above (or below) the current selection. */
 .graffel-selection-toolbar {
   position: absolute;
