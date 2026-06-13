@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useDiagramStore } from './diagramStore'
+import { buildFragment } from '../canvas/clipboard'
 import type { NodeType } from '../format/types'
 
 function reset() {
@@ -186,6 +187,65 @@ describe('diagramStore', () => {
       s.setNodeParent(outer!.id, inner!.id) // would create a cycle — must no-op
       const co = useDiagramStore.getState().nodes.find((n) => n.id === outer!.id)!
       expect(co.parentId ?? null).toBeNull()
+    })
+  })
+
+  describe('clipboard paste + edge reconnection', () => {
+    it('pasteFragment materializes nodes with fresh ids at the base position and selects them', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 100, y: 100 })
+      const a = useDiagramStore.getState().nodes[0]!
+      const frag = buildFragment(useDiagramStore.getState().nodes, [], [a.id])
+      const newIds = s.pasteFragment(frag, { x: 400, y: 300 })
+      const st = useDiagramStore.getState()
+      expect(newIds).toHaveLength(1)
+      expect(st.nodes).toHaveLength(2)
+      const pasted = st.nodes.find((n) => n.id === newIds[0])!
+      expect(pasted.id).not.toBe(a.id)
+      expect(pasted.position).toEqual({ x: 400, y: 300 })
+      expect(st.selectedNodeIds).toEqual(newIds)
+    })
+
+    it('pasteFragment parents pasted roots to the current drill-down level', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.addNode('rectangle', { x: 500, y: 500 })
+      const rect = useDiagramStore.getState().nodes[1]!
+      const frag = buildFragment(useDiagramStore.getState().nodes, [], [rect.id])
+      s.enterContainer(gid)
+      const newIds = s.pasteFragment(frag, { x: 20, y: 30 })
+      const pasted = useDiagramStore.getState().nodes.find((n) => n.id === newIds[0])!
+      expect(pasted.parentId).toBe(gid)
+    })
+
+    it('pasteFragment rejects foreign payloads and is a no-op in read-only', () => {
+      const s = useDiagramStore.getState()
+      expect(s.pasteFragment({ hello: 'nope' } as never, { x: 0, y: 0 })).toEqual([])
+      s.addNode('rectangle', { x: 0, y: 0 })
+      const frag = buildFragment(useDiagramStore.getState().nodes, [], [useDiagramStore.getState().nodes[0]!.id])
+      s.setReadOnly(true)
+      expect(s.pasteFragment(frag, { x: 0, y: 0 })).toEqual([])
+      expect(useDiagramStore.getState().nodes).toHaveLength(1)
+    })
+
+    it('updateEdgeConnection moves an endpoint (undoably) and refuses self-loops', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('rectangle', { x: 0, y: 0 })
+      s.addNode('rectangle', { x: 200, y: 0 })
+      s.addNode('rectangle', { x: 400, y: 0 })
+      const [a, b, c] = useDiagramStore.getState().nodes
+      s.addEdge(a!.id, b!.id, { sourceHandle: 'right', targetHandle: 'left' })
+      const eid = useDiagramStore.getState().edges[0]!.id
+
+      s.updateEdgeConnection(eid, { source: a!.id, sourceHandle: 'right', target: c!.id, targetHandle: 'left' })
+      expect(useDiagramStore.getState().edges[0]!.target).toBe(c!.id)
+
+      // Self-loop refused.
+      s.updateEdgeConnection(eid, { source: a!.id, sourceHandle: 'right', target: a!.id, targetHandle: 'left' })
+      expect(useDiagramStore.getState().edges[0]!.target).toBe(c!.id)
+
+      s.undo()
+      expect(useDiagramStore.getState().edges[0]!.target).toBe(b!.id)
     })
   })
 

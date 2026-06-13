@@ -42,6 +42,7 @@ import { useNodeMenuStore } from './nodeMenuStore'
 import { NodeContextMenu } from './NodeContextMenu'
 import { remapEdgeForView, visibleNodeIds } from './drilldown'
 import { Breadcrumbs } from './Breadcrumbs'
+import { buildFragment, isClipboardFragment } from './clipboard'
 import { AlignmentGuides } from './AlignmentGuides'
 import { computeSnap, GRID_SIZE, type Guide, type IdRect } from './snap'
 
@@ -297,6 +298,15 @@ export function DiagramCanvas() {
     addEdge(source, target, { sourceHandle, targetHandle })
   }, [addEdge])
 
+  // Drag an edge endpoint onto another shape to reconnect it (no delete+redraw).
+  const updateEdgeConnection = useDiagramStore((s) => s.updateEdgeConnection)
+  const onReconnect = useCallback((oldEdge: { id: string }, connection: Connection) => {
+    const { source, target, sourceHandle, targetHandle } = connection
+    if (!source || !target) return
+    if (!isHandleSide(sourceHandle) || !isHandleSide(targetHandle)) return
+    updateEdgeConnection(oldEdge.id, { source, sourceHandle, target, targetHandle })
+  }, [updateEdgeConnection])
+
   // Drag-into / drag-out: when a node is dropped, nest it in the innermost
   // container under its center, or release it to the current level if dropped
   // outside any container. (In a drilled view, "released" means re-parented to
@@ -409,6 +419,47 @@ export function DiagramCanvas() {
         e.preventDefault()
         const s = useDiagramStore.getState()
         s.setSnapGrid(!s.snapGrid)
+        return
+      }
+
+      // Clipboard: copy / cut / paste through the SYSTEM clipboard (works across
+      // tabs and diagrams). Only when shapes are selected (copy/cut) — otherwise
+      // the browser's native copy keeps working for page text.
+      if (mod && (e.key === 'c' || e.key === 'C') && !e.shiftKey) {
+        const st = useDiagramStore.getState()
+        if (st.selectedNodeIds.length === 0) return
+        e.preventDefault()
+        const frag = buildFragment(st.nodes, st.edges, st.selectedNodeIds)
+        void navigator.clipboard.writeText(JSON.stringify(frag)).catch(() => {
+          /* permission denied — nothing sensible to do */
+        })
+        return
+      }
+      if (mod && (e.key === 'x' || e.key === 'X')) {
+        const st = useDiagramStore.getState()
+        if (st.selectedNodeIds.length === 0 || st.readOnly) return
+        e.preventDefault()
+        const frag = buildFragment(st.nodes, st.edges, st.selectedNodeIds)
+        void navigator.clipboard
+          .writeText(JSON.stringify(frag))
+          .then(() => useDiagramStore.getState().removeSelection())
+          .catch(() => {})
+        return
+      }
+      if (mod && (e.key === 'v' || e.key === 'V')) {
+        if (useDiagramStore.getState().readOnly) return
+        e.preventDefault()
+        const at = { ...lastCursorFlow.current }
+        void navigator.clipboard
+          .readText()
+          .then((text) => {
+            let parsed: unknown
+            try { parsed = JSON.parse(text) } catch { return }
+            // Foreign clipboard content (plain text, images…) is silently ignored.
+            if (!isClipboardFragment(parsed)) return
+            useDiagramStore.getState().pasteFragment(parsed, at)
+          })
+          .catch(() => {})
         return
       }
 
@@ -540,6 +591,7 @@ export function DiagramCanvas() {
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
+        onReconnect={readOnly ? undefined : onReconnect}
         onNodeDragStop={readOnly ? undefined : onNodeDragStop}
         onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
         onNodeDoubleClick={onNodeDoubleClick}

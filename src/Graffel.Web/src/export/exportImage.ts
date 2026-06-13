@@ -30,6 +30,23 @@ export async function exportPng(): Promise<string | null> {
   })
 }
 
+/**
+ * Put the current view on the system clipboard as a PNG — the "paste a diagram
+ * straight into Slack / a doc" move. Returns false when there's nothing to
+ * capture or the clipboard is unavailable (permission denied, insecure context).
+ */
+export async function copyPngToClipboard(): Promise<boolean> {
+  const dataUrl = await exportPng()
+  if (!dataUrl) return false
+  try {
+    const blob = await (await fetch(dataUrl)).blob()
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function exportSvg(): Promise<string | null> {
   const target = viewport()
   if (!target) return null

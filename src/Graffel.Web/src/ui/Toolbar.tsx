@@ -1,6 +1,7 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import { useToolStore } from '../canvas/toolStore'
+import { copyPngToClipboard } from '../export/exportImage'
 import { AuthMenu } from '../auth/AuthMenu'
 import { useAuth } from '../auth/useAuth'
 import { DriveMenu } from '../drive/DriveMenu'
@@ -40,6 +41,14 @@ export function Toolbar() {
   const tool = useToolStore((s) => s.tool)
   const setTool = useToolStore((s) => s.setTool)
   const fileInput = useRef<HTMLInputElement>(null)
+  const [copiedPng, setCopiedPng] = useState(false)
+
+  async function onCopyPng() {
+    if (await copyPngToClipboard()) {
+      setCopiedPng(true)
+      window.setTimeout(() => setCopiedPng(false), 1500)
+    }
+  }
 
   function safeFilename(base: string): string {
     return base.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'diagram'
@@ -140,6 +149,12 @@ export function Toolbar() {
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>
+      <button
+        type="button"
+        onClick={() => void onCopyPng()}
+        title="Copy the current view to the clipboard as a PNG"
+        data-testid="action-copy-png"
+      >{copiedPng ? '✓ Copied!' : 'Copy image'}</button>
       <button type="button" onClick={onExportSvg} data-testid="action-export-svg">Export SVG</button>
       {authStatus === 'signed-in' ? (
         <>

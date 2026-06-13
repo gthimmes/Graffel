@@ -12,6 +12,7 @@ import type {
 } from '../format/types'
 import { allShapeIds, getShape, resolveIsContainer } from '../shapes/registry'
 import { absolutePosition, absoluteRect, descendantIds, indexNodes } from '../canvas/nesting'
+import { isClipboardFragment, materializeFragment, type ClipboardFragment } from '../canvas/clipboard'
 
 const FALLBACK_SIZE = { w: 160, h: 80 }
 
@@ -75,6 +76,13 @@ interface DiagramState {
   exitToLevel: (id: string | null) => void
   /** Collapse/expand a container's contents at its parent level (persisted, undoable). */
   toggleCollapsed: (id: string) => void
+  /** Paste a clipboard fragment at a position in the current level; returns new node ids. */
+  pasteFragment: (fragment: ClipboardFragment, basePosition: { x: number; y: number }) => string[]
+  /** Move an edge endpoint (drag-to-reconnect). Self-loops are refused. */
+  updateEdgeConnection: (
+    id: string,
+    conn: { source: string; sourceHandle: HandleSide; target: string; targetHandle: HandleSide },
+  ) => void
   updateEdgeLabel: (id: string, label: string) => void
   updateEdgeStyle: (id: string, patch: Record<string, unknown>) => void
   updateEdgeType: (id: string, type: EdgeType) => void
@@ -543,6 +551,48 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
           else data.collapsed = true
           return { ...n, data }
         }),
+      }))
+    },
+
+    pasteFragment(fragment, basePosition) {
+      const s = get()
+      if (s.readOnly) return []
+      if (!isClipboardFragment(fragment) || fragment.nodes.length === 0) return []
+      const { nodes, edges } = materializeFragment(fragment, {
+        idFor: (old) => `${old.startsWith('e') ? 'e' : 'n'}_${ulid()}`,
+        basePosition,
+        parentId: s.viewRootId,
+      })
+      snapshot(null)
+      const rootIds = nodes
+        .filter((n) => (n.parentId ?? null) === s.viewRootId)
+        .map((n) => n.id)
+      set((st) => ({
+        nodes: [...st.nodes, ...nodes],
+        edges: [...st.edges, ...edges],
+        selectedNodeIds: rootIds,
+        selectedEdgeIds: [],
+      }))
+      return rootIds
+    },
+
+    updateEdgeConnection(id, conn) {
+      if (conn.source === conn.target) return
+      const s = get()
+      if (!s.nodes.some((n) => n.id === conn.source) || !s.nodes.some((n) => n.id === conn.target)) return
+      snapshot(null)
+      set((st) => ({
+        edges: st.edges.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                source: conn.source,
+                sourceHandle: conn.sourceHandle,
+                target: conn.target,
+                targetHandle: conn.targetHandle,
+              }
+            : e,
+        ),
       }))
     },
 

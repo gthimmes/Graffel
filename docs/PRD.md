@@ -137,14 +137,42 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v3.9 Alignment guides + snap-to-shape + opt-in 8 px grid snap. See [ADR-0011](./adr/0011-alignment-snapping.md).
 - **Shipped:** v3.9.1 Equal-spacing snap — gap-equalizer with double-tick indicators between row/column-aligned neighbors.
 - **Shipped:** v3.10 Connectors-on-silhouette + label ergonomics — anchors land on the drawn icon edge (letterbox-corrected + per-shape silhouette bounds measured from rendered pixels into `iconBounds.generated.ts`); a Playwright guard (`anchorTouch.spec.ts`) asserts all 79 shapes touch on 4 sides at default/wide/tall sizes. Labels are empty by default, sit above pictograms, and are repositionable (top/bottom/left/right/center); type-on-selected-shape edits the label.
+- **Shipped:** v3.15 Clipboard & edge reconnection — Ctrl+C/X/V through the system clipboard (cross-tab/cross-diagram; containers travel with contents + internal edges; ids remapped on paste; pastes into the current drill-down level at the cursor); "Copy image" puts a PNG of the view on the clipboard; drag an edge endpoint to reconnect it (self-loops refused, undoable). First slice of the Path to phenomenal below.
 - **Shipped:** v3.14 Drill-down containers — the strategic "depth" bet (see [ADR-0012](./adr/0012-drilldown-containers.md)): double-click a container to enter its interior (breadcrumb + Esc to climb out); collapse a container to hide contents with edges re-targeted to it (a context diagram for free, with a hidden-count badge); shapes added while drilled in belong to that level; share links are explorable (drill navigation works read-only). Fast-follows: boundary stubs for cross-level edges, presenter walkthrough, level-deep-linked shares.
 - **Shipped:** v3.13 Pointer tools + z-order — a Select/Hand tool switcher (V/H, Space-hold to pan); Select rubber-bands a marquee multi-selection (feeds Ctrl+G grouping), middle-button still pans. New node right-click menu: Bring to front / forward, Send backward / to back (reorders the nodes array → stacking within a depth), plus Duplicate, Delete, and contextual Group/Ungroup. E2E in `toolsAndZorder.spec.ts`.
 - **Shipped:** v3.12 On-canvas selection toolbar — a floating quick-style bar that tracks the selection (follows pan/zoom/drag, flips above/below). Nodes: Fill/Border/Text popovers + Group/Ungroup; edges: Stroke/Line/Arrows. Reuses the Inspector's `ColorPicker`/`Segmented`; the right-side Inspector stays the full editor. Pure positioning math in `ui/selectionBox.ts`; E2E in `selectionToolbar.spec.ts`.
 - **Shipped:** v3.11 Containers & grouping — React Flow parent/child (`parentId`; child positions stored parent-relative). Ctrl+G wraps a selection in a new Group/Frame container; Ctrl+Shift+G (or the inspector Ungroup button) dissolves it. Dragging a shape onto a container nests it; dragging it out releases it (no `extent` clamp, so drag-out works). `arch-core:boundary` is a container too. Deleting a container takes its contents (undo restores); duplicating clones contents. Pure nesting math in `canvas/nesting.ts`; E2E in `grouping.spec.ts`. Fast-follows: container auto-grow/collapse, wiring `cloud:region`/`k8s:namespace` (pictograms with baked-in art) as containers.
+- **Now:** the Path to phenomenal sequence (v3.15–v3.20) below.
 - **Later (low confidence on timing):** v4 — realtime multiplayer. Gate: v3.x has a user base that asks for it.
-- **Fast-follow candidate:** floating/dynamic edges that ride the silhouette and slide to face the connected shape (the second option weighed in v3.10; deferred in favor of the fixed-anchor fix).
 
 Not a commitment with dates. Now/next/later, not Q3/Q4/Q1.
+
+## Path to phenomenal (v3.15+)
+
+Post-v3.14 audit verdict: the editor is competent; "phenomenal" lives in five
+gaps — clipboard muscle memory, data-lifecycle trust, the connector ceiling, the
+half-told depth story, and a mute first run. This sequence closes them in
+pain-per-effort order:
+
+- **v3.15 Clipboard & edge reconnection** — Ctrl+C/X/V through the system
+  clipboard (works across tabs and diagrams; copies containers with contents and
+  internal edges); "Copy as image" puts a PNG on the clipboard for Slack/docs;
+  drag an edge endpoint to reconnect it to another shape (no more delete+redraw).
+- **v3.16 Documents** — multi-document local library (list, recents, rename,
+  delete), so "New" stops being destructive; replace native confirm()/alert()
+  with in-app dialogs; autosave history (restore previous versions).
+- **v3.17 Depth, finished** — boundary stubs for cross-level edges inside a
+  drilled view ("⇠ Web App" pills), animated drill-in/out transition, level
+  deep-links in share URLs. Completes ADR-0012's deferred list.
+- **v3.18 First run** — 3–4 starter templates plus a drillable sample diagram
+  (teaches the differentiator in the first ten seconds), "press / for commands"
+  hint, hover affordance that containers are enterable.
+- **v3.19 Connector mastery** — floating edges (anchors slide to face the
+  connected shape), obstacle-aware orthogonal routing (lines stop cutting
+  through shapes), slideable edge labels.
+- **v3.20 Delight & proof** — dark mode, one-shot auto-layout (ELK/dagre)
+  "tidy up", container auto-grow when contents hit the edge, and a 200-node
+  performance fixture asserting the 60fps budget from §3.
 
 ---
 

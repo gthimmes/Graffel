@@ -6,7 +6,7 @@ import {
   parseDocument,
   serializeDocument,
 } from '../format/graffelFile'
-import { exportPng, exportSvg } from '../export/exportImage'
+import { copyPngToClipboard, exportPng, exportSvg } from '../export/exportImage'
 
 export interface Command {
   id: string
@@ -99,6 +99,8 @@ export const COMMANDS: Command[] = [
       const title = useDiagramStore.getState().title
       downloadBlob(`${safeFilename(title)}.png`, 'image/png', await (await fetch(dataUrl)).blob())
     } },
+  { id: 'copy-png', group: 'File', label: 'Copy as image', keywords: ['clipboard', 'png', 'screenshot', 'slack'],
+    run: async () => { await copyPngToClipboard() } },
   { id: 'export-svg', group: 'File', label: 'Export SVG', keywords: ['vector', 'image'],
     run: async () => {
       const dataUrl = await exportSvg()
