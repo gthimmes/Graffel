@@ -170,9 +170,12 @@ pain-per-effort order:
   the URL hash (`#l=<id>`) keep the address bar shareable and let a "🔗 Link"
   breadcrumb button copy a link that reopens the exact level — including for
   read-only share views. Completes ADR-0012's deferred list.
-- **v3.18 First run** — 3–4 starter templates plus a drillable sample diagram
-  (teaches the differentiator in the first ten seconds), "press / for commands"
-  hint, hover affordance that containers are enterable.
+- **v3.18 First run** — ✅ shipped: empty-canvas welcome overlay with three
+  one-click starters (Web service architecture, Flowchart, Microservices); the
+  architecture starter nests services in an enterable container so drill-down is
+  discovered immediately. Shortcut tips (`/` palette, double-click-to-drill,
+  R/E/D/T) on the overlay, and a hover "⤢ Double-click to open" hint on every
+  container. Overlay never shows in read-only share views.
 - **v3.19 Connector mastery** — floating edges (anchors slide to face the
   connected shape), obstacle-aware orthogonal routing (lines stop cutting
   through shapes), slideable edge labels.

@@ -294,6 +294,13 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
           </span>
         ) : null}
 
+        {/* Discoverability: containers announce that they're enterable on hover. */}
+        {isContainer && !collapsed ? (
+          <span className="graffel-enter-hint" data-testid="enter-hint" aria-hidden>
+            ⤢ Double-click to open{(childCount ?? 0) > 0 ? ` · ${childCount}` : ''}
+          </span>
+        ) : null}
+
         {/* Cross-level connection chips: click to jump to the off-level peer. */}
         {stubs && stubs.length > 0 ? (
           <div className="graffel-node-stubs" data-testid="node-stubs">

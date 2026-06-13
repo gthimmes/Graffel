@@ -37,6 +37,7 @@ import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
 import { useUiStore } from '../ui/CommandPalette'
 import { SelectionToolbar } from '../ui/SelectionToolbar'
+import { WelcomeOverlay } from '../ui/WelcomeOverlay'
 import { useToolStore } from './toolStore'
 import { useNodeMenuStore } from './nodeMenuStore'
 import { NodeContextMenu } from './NodeContextMenu'
@@ -670,6 +671,7 @@ export function DiagramCanvas() {
       ) : null}
       <Breadcrumbs />
       <SelectionToolbar />
+      <WelcomeOverlay />
     </div>
   )
 }
