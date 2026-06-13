@@ -301,6 +301,41 @@ describe('diagramStore', () => {
       expect(st.viewRootId).toBeNull()
     })
 
+    it('revealNode drills to a node\'s parent level and selects it', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.enterContainer(gid)
+      const childId = s.addNode('rectangle', { x: 10, y: 10 }) // parented to gid
+      s.exitToLevel(null)
+      s.revealNode(childId)
+      const st = useDiagramStore.getState()
+      expect(st.viewRootId).toBe(gid)
+      expect(st.selectedNodeIds).toEqual([childId])
+    })
+
+    it('revealNode of a top-level node returns to the root level', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.addNode('rectangle', { x: 400, y: 0 }) // top-level
+      const topId = useDiagramStore.getState().nodes[1]!.id
+      s.enterContainer(gid)
+      s.revealNode(topId)
+      const st = useDiagramStore.getState()
+      expect(st.viewRootId).toBeNull()
+      expect(st.selectedNodeIds).toEqual([topId])
+    })
+
+    it('revealNode works in read-only mode (share navigation)', () => {
+      const s = useDiagramStore.getState()
+      const gid = s.addNode('basic:group', { x: 0, y: 0 })
+      s.enterContainer(gid)
+      const childId = s.addNode('rectangle', { x: 10, y: 10 })
+      s.exitToLevel(null)
+      s.setReadOnly(true)
+      s.revealNode(childId)
+      expect(useDiagramStore.getState().viewRootId).toBe(gid)
+    })
+
     it('loadDocument resets the view root', () => {
       const s = useDiagramStore.getState()
       const gid = s.addNode('basic:group', { x: 0, y: 0 })

@@ -51,7 +51,10 @@ level stays readable.
 
 ## Deferred (fast-follows)
 
-- **Boundary stubs:** pills at the edge of a drilled view representing
-  cross-level connections ("⇠ Web App"); v3.14 simply omits those edges inside.
-- **Presenter walkthrough:** guided path through levels for demos.
-- **Level-aware share URLs** (deep-link a share to a specific container).
+- ~~**Boundary stubs**~~ — shipped v3.17: cross-level edges render as clickable
+  chips (`boundaryStubsForView` in `canvas/drilldown.ts`) on the in-level
+  endpoint; click reveals the peer (`revealNode`).
+- ~~**Level-aware share URLs**~~ — shipped v3.17: `#l=<id>` hash deep-links
+  (`canvas/levelLink.ts`), read on load in `DiagramCanvas`/`ShareView` and kept
+  in sync via `replaceState`; breadcrumb "Link" button copies one.
+- **Presenter walkthrough:** guided path through levels for demos. Still deferred.

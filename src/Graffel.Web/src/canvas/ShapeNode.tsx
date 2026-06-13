@@ -14,6 +14,7 @@ import {
 import { useDiagramStore } from '../store/diagramStore'
 import { getShape, resolveAnchors, resolveDefaultLabelPosition, resolveFit, resolveIconBounds, resolveIsContainer } from '../shapes/registry'
 import { anchorToBoxPercent } from './anchors'
+import type { BoundaryStub } from './drilldown'
 
 interface ShapeNodeData extends Record<string, unknown> {
   label: string
@@ -24,6 +25,8 @@ interface ShapeNodeData extends Record<string, unknown> {
   /** v3.14 drill-down (set by the canvas view layer). */
   collapsed?: boolean
   childCount?: number
+  /** v3.17 cross-level connection chips (set by the canvas view layer). */
+  stubs?: BoundaryStub[]
 }
 
 const HANDLE_POSITIONS = [
@@ -108,11 +111,12 @@ function labelBoxStyle(pos: LabelPosition, isTextShape: boolean, r: IconRect): C
 }
 
 export function ShapeNode({ id, data, selected }: NodeProps) {
-  const { label, shapeId, width, height, style, collapsed, childCount } = data as ShapeNodeData
+  const { label, shapeId, width, height, style, collapsed, childCount, stubs } = data as ShapeNodeData
   const def = getShape(shapeId)
   const updateNodeLabel = useDiagramStore((s) => s.updateNodeLabel)
   const updateNodeSize = useDiagramStore((s) => s.updateNodeSize)
   const readOnly = useDiagramStore((s) => s.readOnly)
+  const revealNode = useDiagramStore((s) => s.revealNode)
   const editingNodeId = useDiagramStore((s) => s.editingNodeId)
   const editSeed = useDiagramStore((s) => s.editSeed)
   const beginEditNode = useDiagramStore((s) => s.beginEditNode)
@@ -288,6 +292,25 @@ export function ShapeNode({ id, data, selected }: NodeProps) {
           <span className="graffel-collapse-badge" data-testid="collapse-badge" title={`${childCount} hidden — double-click to enter`}>
             ▸ {childCount}
           </span>
+        ) : null}
+
+        {/* Cross-level connection chips: click to jump to the off-level peer. */}
+        {stubs && stubs.length > 0 ? (
+          <div className="graffel-node-stubs" data-testid="node-stubs">
+            {stubs.map((s) => (
+              <button
+                key={s.edgeId}
+                type="button"
+                className={`graffel-stub is-${s.dir}`}
+                data-testid={`stub-${s.edgeId}`}
+                title={s.dir === 'out' ? `Connects out to ${s.label}` : `Connects in from ${s.label}`}
+                onClick={(e) => { e.stopPropagation(); revealNode(s.peerId) }}
+              >
+                <span className="graffel-stub-arrow" aria-hidden>{s.dir === 'out' ? '→' : '←'}</span>
+                <span className="graffel-stub-label">{s.label}</span>
+              </button>
+            ))}
+          </div>
         ) : null}
       </div>
     </>

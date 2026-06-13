@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { DiagramCanvas } from '../canvas/DiagramCanvas'
 import { useDiagramStore } from '../store/diagramStore'
 import { parseDocument } from '../format/graffelFile'
+import { parseLevelHash } from '../canvas/levelLink'
 import { resolveShare } from './shareClient'
 
 interface ShareViewProps {
@@ -30,6 +31,9 @@ export function ShareView({ token }: ShareViewProps) {
           loadDocument(doc)
           // loadDocument resets readOnly through emptyState — set again after.
           setReadOnly(true)
+          // Honor a #l=<id> deep-link so a share can open inside a container.
+          const levelId = parseLevelHash(window.location.hash)
+          if (levelId) useDiagramStore.getState().enterContainer(levelId)
           setState('ready')
         } catch (e) {
           setErrMsg((e as Error).message)

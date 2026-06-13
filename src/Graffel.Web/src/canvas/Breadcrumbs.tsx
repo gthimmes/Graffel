@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import { getShape } from '../shapes/registry'
+import { levelHash } from './levelLink'
 import type { GraffelNode } from '../format/types'
 
 /**
@@ -12,8 +14,17 @@ export function Breadcrumbs() {
   const nodes = useDiagramStore((s) => s.nodes)
   const title = useDiagramStore((s) => s.title)
   const exitToLevel = useDiagramStore((s) => s.exitToLevel)
+  const [copied, setCopied] = useState(false)
 
   if (!viewRootId) return null
+
+  function copyLink() {
+    const url = window.location.origin + window.location.pathname + window.location.search + levelHash(viewRootId)
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }
 
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const chain: GraffelNode[] = []
@@ -58,6 +69,13 @@ export function Breadcrumbs() {
           </span>
         )
       })}
+      <button
+        type="button"
+        className="crumb-copy"
+        onClick={copyLink}
+        title="Copy a link that opens this level"
+        data-testid="crumb-copy-link"
+      >{copied ? '✓ Copied' : '🔗 Link'}</button>
     </nav>
   )
 }

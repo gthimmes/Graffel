@@ -40,7 +40,8 @@ import { SelectionToolbar } from '../ui/SelectionToolbar'
 import { useToolStore } from './toolStore'
 import { useNodeMenuStore } from './nodeMenuStore'
 import { NodeContextMenu } from './NodeContextMenu'
-import { remapEdgeForView, visibleNodeIds } from './drilldown'
+import { boundaryStubsForView, remapEdgeForView, visibleNodeIds, type BoundaryStub } from './drilldown'
+import { levelHash, parseLevelHash } from './levelLink'
 import { Breadcrumbs } from './Breadcrumbs'
 import { buildFragment, isClipboardFragment } from './clipboard'
 import { AlignmentGuides } from './AlignmentGuides'
@@ -85,6 +86,14 @@ export function DiagramCanvas() {
       const p = n.parentId ?? null
       if (p) childCounts.set(p, (childCounts.get(p) ?? 0) + 1)
     }
+    // Cross-level connections become chips on the visible endpoint node.
+    const byId = indexNodes(nodes)
+    const stubsByNode = new Map<string, BoundaryStub[]>()
+    for (const stub of boundaryStubsForView(edges, nodes, visible, byId)) {
+      const list = stubsByNode.get(stub.nodeId)
+      if (list) list.push(stub)
+      else stubsByNode.set(stub.nodeId, [stub])
+    }
     // Parents must precede their children in the array (React Flow requirement).
     return sortNodesByDepth(nodes.filter((n) => visible.has(n.id))).map((n) => {
       const rf = toReactFlowNode(
@@ -94,10 +103,11 @@ export function DiagramCanvas() {
         ...rf.data,
         collapsed: (n.data as { collapsed?: boolean }).collapsed === true,
         childCount: childCounts.get(n.id) ?? 0,
+        stubs: stubsByNode.get(n.id) ?? [],
       }
       return { ...rf, selected: selectedNodeIds.includes(n.id) }
     })
-  }, [nodes, selectedNodeIds, visible, viewRootId])
+  }, [nodes, edges, selectedNodeIds, visible, viewRootId])
 
   const rfEdges = useMemo(() => {
     const byId = indexNodes(nodes)
@@ -189,12 +199,22 @@ export function DiagramCanvas() {
   }, [spacePan])
   const panning = tool === 'pan' || spacePan
 
-  // Hydrate from localStorage on mount.
+  // Hydrate from localStorage on mount, then honor a #l=<id> level deep-link.
   useEffect(() => {
     const doc = loadFromLocalStorage()
     if (doc) loadDocument(doc)
     useDiagramStore.getState().setSnapGrid(loadSnapGrid())
+    const levelId = parseLevelHash(window.location.hash)
+    if (levelId) useDiagramStore.getState().enterContainer(levelId)
   }, [loadDocument])
+
+  // Keep the URL hash in sync with the current level (replaceState = no history
+  // spam) so the address bar is always a shareable deep-link.
+  useEffect(() => {
+    const base = window.location.pathname + window.location.search
+    const next = base + levelHash(viewRootId)
+    window.history.replaceState(null, '', next)
+  }, [viewRootId])
 
   // Re-frame the viewport when entering/leaving a drill-down level (after the
   // level's nodes have rendered).
@@ -204,6 +224,17 @@ export function DiagramCanvas() {
     }, 0)
     return () => window.clearTimeout(t)
   }, [viewRootId, rf])
+
+  // Brief content fade when changing levels, so the drill reads as moving between
+  // levels rather than a jump cut. Cosmetic; disabled via prefers-reduced-motion.
+  const [levelEntering, setLevelEntering] = useState(false)
+  const didFirstLevel = useRef(false)
+  useEffect(() => {
+    if (!didFirstLevel.current) { didFirstLevel.current = true; return }
+    setLevelEntering(true)
+    const t = window.setTimeout(() => setLevelEntering(false), 240)
+    return () => window.clearTimeout(t)
+  }, [viewRootId])
 
   // Autosave on store changes (debounced). Never in read-only mode — a shared
   // (read-only) diagram must not overwrite the viewer's own current document.
@@ -577,7 +608,7 @@ export function DiagramCanvas() {
   return (
     <div
       ref={wrapperRef}
-      className={`graffel-canvas-host${panning ? ' is-panning' : ''}`}
+      className={`graffel-canvas-host${panning ? ' is-panning' : ''}${levelEntering ? ' is-level-entering' : ''}`}
       data-testid="canvas-host"
       data-tool={panning ? 'pan' : 'select'}
       onDrop={onDrop}

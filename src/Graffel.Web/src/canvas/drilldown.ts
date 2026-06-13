@@ -1,4 +1,5 @@
 import type { GraffelEdge, GraffelNode } from '../format/types'
+import { getShape } from '../shapes/registry'
 import type { NodeIndex } from './nesting'
 
 /**
@@ -72,4 +73,51 @@ export function remapEdgeForView(
   const target = visibleRepresentative(edge.target, visible, byId)
   if (!source || !target || source === target) return null
   return { source, target }
+}
+
+/** A cross-level connection surfaced as a chip on a visible node. */
+export interface BoundaryStub {
+  edgeId: string
+  /** The visible node the chip attaches to. */
+  nodeId: string
+  /** 'out' = connection leaves this level; 'in' = enters it. */
+  dir: 'out' | 'in'
+  /** The off-level endpoint. */
+  peerId: string
+  /** Display name of the peer (its label, else its shape label). */
+  label: string
+}
+
+function peerLabel(id: string, byId: NodeIndex): string | null {
+  const n = byId.get(id)
+  if (!n) return null
+  return n.data.label || getShape(n.type)?.label || 'Shape'
+}
+
+/**
+ * Edges with exactly one endpoint inside the current level become "stubs" — a
+ * chip on the visible node naming the off-level peer — so cross-level
+ * connections stay visible instead of silently vanishing. (Edges with both or
+ * neither endpoint visible are handled by remapEdgeForView and produce no stub.)
+ */
+export function boundaryStubsForView(
+  edges: GraffelEdge[],
+  _nodes: GraffelNode[],
+  visible: Set<string>,
+  byId: NodeIndex,
+): BoundaryStub[] {
+  const out: BoundaryStub[] = []
+  for (const e of edges) {
+    const srcVisible = visibleRepresentative(e.source, visible, byId)
+    const tgtVisible = visibleRepresentative(e.target, visible, byId)
+    // Exactly one side visible → it's a boundary crossing.
+    if (srcVisible && !tgtVisible) {
+      const label = peerLabel(e.target, byId)
+      if (label !== null) out.push({ edgeId: e.id, nodeId: srcVisible, dir: 'out', peerId: e.target, label })
+    } else if (!srcVisible && tgtVisible) {
+      const label = peerLabel(e.source, byId)
+      if (label !== null) out.push({ edgeId: e.id, nodeId: tgtVisible, dir: 'in', peerId: e.source, label })
+    }
+  }
+  return out
 }

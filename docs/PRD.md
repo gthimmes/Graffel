@@ -163,9 +163,13 @@ pain-per-effort order:
   replaced with in-app modal dialogs; legacy single-doc key auto-migrated; fixed
   a share-view bug that overwrote your local document. **v3.16.1 (deferred):**
   autosave history / restore previous versions.
-- **v3.17 Depth, finished** — boundary stubs for cross-level edges inside a
-  drilled view ("⇠ Web App" pills), animated drill-in/out transition, level
-  deep-links in share URLs. Completes ADR-0012's deferred list.
+- **v3.17 Depth, finished** — ✅ shipped: cross-level edges now surface as
+  clickable boundary-stub chips on the in-level endpoint ("← Web App" / "→ Email
+  Provider") instead of vanishing; clicking one reveals the off-level peer. A
+  brief fade animates level changes (reduced-motion aware). Level deep-links via
+  the URL hash (`#l=<id>`) keep the address bar shareable and let a "🔗 Link"
+  breadcrumb button copy a link that reopens the exact level — including for
+  read-only share views. Completes ADR-0012's deferred list.
 - **v3.18 First run** — 3–4 starter templates plus a drillable sample diagram
   (teaches the differentiator in the first ten seconds), "press / for commands"
   hint, hover affordance that containers are enterable.

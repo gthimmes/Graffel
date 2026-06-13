@@ -74,6 +74,8 @@ interface DiagramState {
   enterContainer: (id: string) => void
   /** Jump to a level: a container id on the current chain, or null for the root. */
   exitToLevel: (id: string | null) => void
+  /** Navigate to the level that contains a node and select it (e.g. from a boundary stub). */
+  revealNode: (id: string) => void
   /** Collapse/expand a container's contents at its parent level (persisted, undoable). */
   toggleCollapsed: (id: string) => void
   /** Paste a clipboard fragment at a position in the current level; returns new node ids. */
@@ -536,6 +538,13 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
     exitToLevel(id) {
       if (id !== null && !get().nodes.some((n) => n.id === id)) return
       set({ viewRootId: id, selectedNodeIds: [], selectedEdgeIds: [] })
+    },
+
+    revealNode(id) {
+      const node = get().nodes.find((n) => n.id === id)
+      if (!node) return
+      // Navigation (allowed read-only): surface the level holding the node.
+      set({ viewRootId: node.parentId ?? null, selectedNodeIds: [id], selectedEdgeIds: [] })
     },
 
     toggleCollapsed(id) {
