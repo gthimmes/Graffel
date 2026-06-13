@@ -95,7 +95,8 @@ export function DiagramCanvas() {
       else stubsByNode.set(stub.nodeId, [stub])
     }
     // Parents must precede their children in the array (React Flow requirement).
-    return sortNodesByDepth(nodes.filter((n) => visible.has(n.id))).map((n) => {
+    const ordered = sortNodesByDepth(nodes.filter((n) => visible.has(n.id)))
+    return ordered.map((n, i) => {
       const rf = toReactFlowNode(
         (n.parentId ?? null) === viewRootId ? { ...n, parentId: null } : n,
       )
@@ -105,6 +106,10 @@ export function DiagramCanvas() {
         childCount: childCounts.get(n.id) ?? 0,
         stubs: stubsByNode.get(n.id) ?? [],
       }
+      // Explicit z-index from array position makes z-order (bring-to-front /
+      // send-to-back) deterministic and immediate — independent of DOM order and
+      // of selection. Depth-sorted, so a container's children always sit above it.
+      rf.zIndex = i
       return { ...rf, selected: selectedNodeIds.includes(n.id) }
     })
   }, [nodes, edges, selectedNodeIds, visible, viewRootId])
@@ -631,6 +636,10 @@ export function DiagramCanvas() {
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable
+        // We control stacking explicitly via each node's zIndex (see rfNodes), so
+        // selecting a shape must NOT auto-elevate it — that masked send-to-back /
+        // bring-to-front (the selected node stayed on top regardless).
+        elevateNodesOnSelect={false}
         // Pointer tool: 'select' rubber-bands on left-drag (middle still pans);
         // 'pan' (or Space held) grabs the canvas. Shift+drag box-selects in both.
         panOnDrag={panning ? true : [1]}

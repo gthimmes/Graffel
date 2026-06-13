@@ -38,6 +38,10 @@ async function seedDiagramWithEdge(page: import('@playwright/test').Page) {
     localStorage.setItem('graffel.currentDocument.v1', JSON.stringify(doc))
   })
   await page.reload()
+  await page.waitForSelector('.react-flow__node')
+  // Let the mount-time fitView animation settle before tests compute drag
+  // coordinates from rendered geometry.
+  await page.waitForTimeout(350)
 }
 
 test.beforeEach(async ({ page }) => {

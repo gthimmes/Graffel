@@ -106,3 +106,66 @@ test('node right-click menu sends to back and brings to front (changes stack ord
   await page.getByTestId('node-ctx-front').click()
   expect(await nodeOrder(page)).toEqual(['c', 'b', 'a'])
 })
+
+async function selectNodes(page: Page, ids: string[]) {
+  await page.evaluate((sel) => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { selectNodes: (i: string[]) => void } } } }
+    w.__graffel.useDiagramStore.getState().selectNodes(sel)
+  }, ids)
+}
+
+// Rendered z-index of a node (what the user actually sees), not just store order.
+function renderedZ(page: Page, id: string) {
+  return page.evaluate((nid) => {
+    const el = document.querySelector(`.react-flow__node[data-id="${nid}"]`) as HTMLElement | null
+    if (!el) return null
+    return Number(el.style.zIndex || getComputedStyle(el).zIndex || '0')
+  }, id)
+}
+
+test('z-order changes the RENDERED stacking immediately — even while the node stays selected', async ({ page }) => {
+  // Regression: selecting a node used to elevate it (z-index 1000), which masked
+  // send-to-back / bring-to-front entirely until you clicked away.
+  await seed(page, [
+    { id: 'a', type: 'basic:rectangle', x: 200, y: 200, w: 200, h: 140 },
+    { id: 'b', type: 'basic:rectangle', x: 280, y: 260, w: 200, h: 140 },
+  ])
+  // b is last in the array → renders above a.
+  expect(await renderedZ(page, 'b')).toBeGreaterThan((await renderedZ(page, 'a'))!)
+
+  // Select b and send it to back via the keyboard-equivalent store action while
+  // it remains selected; the rendered z must flip right away.
+  await selectNodes(page, ['b'])
+  await page.evaluate(() => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { sendToBack: (ids: string[]) => void } } } }
+    w.__graffel.useDiagramStore.getState().sendToBack(['b'])
+  })
+  await page.waitForTimeout(100)
+  expect(await renderedZ(page, 'a')).toBeGreaterThan((await renderedZ(page, 'b'))!)
+
+  // Bring b back to front — again visible while still selected.
+  await page.evaluate(() => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { bringToFront: (ids: string[]) => void } } } }
+    w.__graffel.useDiagramStore.getState().bringToFront(['b'])
+  })
+  await page.waitForTimeout(100)
+  expect(await renderedZ(page, 'b')).toBeGreaterThan((await renderedZ(page, 'a'))!)
+})
+
+test('a container always renders behind its children (depth-ordered z)', async ({ page }) => {
+  await seed(page, [
+    { id: 'a', type: 'basic:rectangle', x: 120, y: 160 },
+    { id: 'b', type: 'basic:rectangle', x: 360, y: 160 },
+  ])
+  await selectNodes(page, ['a', 'b'])
+  await page.keyboard.press('Control+g')
+  await page.waitForTimeout(150)
+  const gid = await page.evaluate(() => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { nodes: Array<{ id: string; type: string }> } } } }
+    return w.__graffel.useDiagramStore.getState().nodes.find((n) => n.type === 'basic:group')!.id
+  })
+  // The group (container) must sit below both of its children.
+  const gz = (await renderedZ(page, gid))!
+  expect((await renderedZ(page, 'a'))!).toBeGreaterThan(gz)
+  expect((await renderedZ(page, 'b'))!).toBeGreaterThan(gz)
+})
