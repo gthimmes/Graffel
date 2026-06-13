@@ -7,6 +7,9 @@ import {
   serializeDocument,
 } from '../format/graffelFile'
 import { copyPngToClipboard, exportPng, exportSvg } from '../export/exportImage'
+import { importDocument, newDocument } from '../store/documents'
+import { useDialogStore } from '../ui/dialogStore'
+import { useDocumentsStore } from '../ui/DocumentsDialog'
 
 export interface Command {
   id: string
@@ -68,7 +71,8 @@ export const COMMANDS: Command[] = [
   { id: 'delete-selection',    group: 'Edit', label: 'Delete selection',    shortcut: 'Delete', run: () => useDiagramStore.getState().removeSelection() },
 
   // File
-  { id: 'file-new', group: 'File', label: 'New diagram', keywords: ['clear', 'reset'], run: () => useDiagramStore.getState().reset() },
+  { id: 'file-new', group: 'File', label: 'New diagram', keywords: ['clear', 'blank'], run: () => newDocument() },
+  { id: 'documents-open', group: 'File', label: 'Documents…', keywords: ['library', 'files', 'switch', 'recent'], run: () => useDocumentsStore.getState().open() },
   { id: 'file-download', group: 'File', label: 'Download .graffel', keywords: ['save', 'export', 'json'],
     run: () => {
       const doc = useDiagramStore.getState().toDocument()
@@ -83,9 +87,9 @@ export const COMMANDS: Command[] = [
         const file = input.files?.[0]
         if (!file) return
         try {
-          useDiagramStore.getState().loadDocument(parseDocument(await file.text()))
+          importDocument(parseDocument(await file.text()))
         } catch (err) {
-          alert(`Could not open file: ${(err as Error).message}`)
+          void useDialogStore.getState().showError('Could not open file', (err as Error).message)
         }
       })
       input.click()

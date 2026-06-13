@@ -36,6 +36,10 @@ async function seedTwoNodes(page: Page) {
   // Wait for both nodes to render.
   await expect(page.getByTestId('shape-service')).toBeVisible()
   await expect(page.getByTestId('shape-database')).toBeVisible()
+  // Let the mount-time fitView animation settle before the test reads
+  // getViewport() — otherwise the flow→page conversion is computed against a
+  // mid-animation transform and the precise drag misses the alignment zone.
+  await page.waitForTimeout(350)
 }
 
 test.beforeEach(async ({ page }) => {

@@ -78,7 +78,7 @@ test('dragging a midpoint handle inserts a waypoint that persists', async ({ pag
   // Wait for autosave debounce, then verify the waypoint is in the persisted doc.
   await page.waitForTimeout(700)
   const wp = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.waypoints
   })
   expect(wp).toHaveLength(1)
@@ -124,7 +124,7 @@ test('inspector "Clear" button removes all waypoints', async ({ page }) => {
 
   await page.waitForTimeout(700)
   const wp = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.waypoints
   })
   expect(wp).toEqual([])
@@ -162,7 +162,7 @@ test('right-clicking a real waypoint handle removes it', async ({ page }) => {
   await real.click({ button: 'right' })
   await page.waitForTimeout(700)
   const wp = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.waypoints
   })
   expect(wp).toEqual([])

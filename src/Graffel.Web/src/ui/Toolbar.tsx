@@ -11,6 +11,9 @@ import {
   serializeDocument,
 } from '../format/graffelFile'
 import { exportPng, exportSvg } from '../export/exportImage'
+import { importDocument, newDocument } from '../store/documents'
+import { useDialogStore } from './dialogStore'
+import { useDocumentsStore } from './DocumentsDialog'
 
 function downloadBlob(name: string, mime: string, data: string | Blob) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mime })
@@ -29,8 +32,6 @@ export function Toolbar() {
   const title = useDiagramStore((s) => s.title)
   const setTitle = useDiagramStore((s) => s.setTitle)
   const toDocument = useDiagramStore((s) => s.toDocument)
-  const loadDocument = useDiagramStore((s) => s.loadDocument)
-  const reset = useDiagramStore((s) => s.reset)
   const undo = useDiagramStore((s) => s.undo)
   const redo = useDiagramStore((s) => s.redo)
   // canUndo/canRedo are functions; subscribe to the history slice directly to re-render.
@@ -68,10 +69,9 @@ export function Toolbar() {
     if (!file) return
     const text = await file.text()
     try {
-      const doc = parseDocument(text)
-      loadDocument(doc)
+      importDocument(parseDocument(text))
     } catch (err) {
-      alert(`Could not open file: ${(err as Error).message}`)
+      void useDialogStore.getState().showError('Could not open file', (err as Error).message)
     } finally {
       e.target.value = ''
     }
@@ -89,8 +89,10 @@ export function Toolbar() {
     downloadBlob(`${safeFilename(title)}.svg`, 'image/svg+xml', await (await fetch(dataUrl)).blob())
   }
 
+  // "New" is non-destructive now: the current diagram is saved to the library
+  // and a fresh one opens. No confirmation needed.
   function onNew() {
-    if (confirm('Discard current diagram and start a new one?')) reset()
+    newDocument()
   }
 
   return (
@@ -146,6 +148,7 @@ export function Toolbar() {
         className={snapGrid ? 'toolbar-toggle on' : 'toolbar-toggle'}
       >⌗ Grid</button>
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
+      <button type="button" onClick={() => useDocumentsStore.getState().open()} data-testid="action-documents">Documents</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>

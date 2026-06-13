@@ -205,13 +205,15 @@ export function DiagramCanvas() {
     return () => window.clearTimeout(t)
   }, [viewRootId, rf])
 
-  // Autosave on store changes (debounced).
+  // Autosave on store changes (debounced). Never in read-only mode — a shared
+  // (read-only) diagram must not overwrite the viewer's own current document.
   useEffect(() => {
+    if (readOnly) return
     const t = window.setTimeout(() => {
       saveToLocalStorage(toDocument())
     }, 400)
     return () => window.clearTimeout(t)
-  }, [nodes, edges, toDocument])
+  }, [nodes, edges, toDocument, readOnly])
 
   // Persist the grid-snap preference whenever it changes.
   const snapGrid = useDiagramStore((s) => s.snapGrid)

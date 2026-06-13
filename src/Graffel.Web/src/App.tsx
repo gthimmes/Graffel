@@ -5,6 +5,8 @@ import { Palette } from './ui/Palette'
 import { Toolbar } from './ui/Toolbar'
 import { Inspector } from './ui/Inspector'
 import { CommandPalette } from './ui/CommandPalette'
+import { AppDialogs } from './ui/AppDialogs'
+import { DocumentsDialog } from './ui/DocumentsDialog'
 import { ShareView } from './share/ShareView'
 import './App.css'
 
@@ -32,6 +34,8 @@ export default function App() {
           <Inspector />
         </div>
         <CommandPalette />
+        <DocumentsDialog />
+        <AppDialogs />
       </div>
     </ReactFlowProvider>
   )

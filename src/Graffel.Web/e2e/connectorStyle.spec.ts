@@ -55,7 +55,7 @@ test('changing stroke style to dashed updates the document', async ({ page }) =>
   await page.getByTestId('ei-stroke-style-dashed').click()
   await page.waitForTimeout(700)
   const stored = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.style?.strokeStyle
   })
   expect(stored).toBe('dashed')
@@ -70,7 +70,7 @@ test('selecting an end marker writes it to the edge style', async ({ page }) => 
   await page.getByTestId('ei-marker-end').selectOption('arrow')
   await page.waitForTimeout(700)
   const stored = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.style?.markerEnd
   })
   expect(stored).toBe('arrow')
@@ -85,7 +85,7 @@ test('marker size segmented control updates the edge', async ({ page }) => {
   await page.getByTestId('ei-marker-size-lg').click()
   await page.waitForTimeout(700)
   const stored = await page.evaluate(() => {
-    const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+    const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
     return doc.edges[0].data.style?.markerSize
   })
   expect(stored).toBe('lg')

@@ -131,7 +131,7 @@ test.describe('connector context menu', () => {
     await page.getByTestId('edge-ctx-orthogonal').click()
     await page.waitForTimeout(700)
     const result = await page.evaluate(() => {
-      const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+      const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
       return { type: doc.edges[0].type, waypoints: doc.edges[0].data.waypoints }
     })
     expect(result.type).toBe('orthogonal')
@@ -145,7 +145,7 @@ test.describe('connector context menu', () => {
     await page.getByTestId('edge-ctx-curved').click()
     await page.waitForTimeout(700)
     const result = await page.evaluate(() => {
-      const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+      const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
       return { type: doc.edges[0].type, waypoints: doc.edges[0].data.waypoints }
     })
     expect(result.type).toBe('bezier')
@@ -159,7 +159,7 @@ test.describe('connector context menu', () => {
     await page.getByTestId('edge-ctx-clear').click()
     await page.waitForTimeout(700)
     const result = await page.evaluate(() => {
-      const doc = JSON.parse(localStorage.getItem('graffel.currentDocument.v1')!)
+      const doc = (window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } } } } }).__graffel.useDiagramStore.getState().toDocument()
       return { type: doc.edges[0].type, waypoints: doc.edges[0].data.waypoints }
     })
     expect(result.type).toBe('straight')  // unchanged

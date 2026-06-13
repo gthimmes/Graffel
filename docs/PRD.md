@@ -158,9 +158,11 @@ pain-per-effort order:
   clipboard (works across tabs and diagrams; copies containers with contents and
   internal edges); "Copy as image" puts a PNG on the clipboard for Slack/docs;
   drag an edge endpoint to reconnect it to another shape (no more delete+redraw).
-- **v3.16 Documents** — multi-document local library (list, recents, rename,
-  delete), so "New" stops being destructive; replace native confirm()/alert()
-  with in-app dialogs; autosave history (restore previous versions).
+- **v3.16 Documents** — ✅ shipped: multi-document local library (list, recents,
+  rename, delete), so "New" stops being destructive; native confirm()/alert()
+  replaced with in-app modal dialogs; legacy single-doc key auto-migrated; fixed
+  a share-view bug that overwrote your local document. **v3.16.1 (deferred):**
+  autosave history / restore previous versions.
 - **v3.17 Depth, finished** — boundary stubs for cross-level edges inside a
   drilled view ("⇠ Web App" pills), animated drill-in/out transition, level
   deep-links in share URLs. Completes ADR-0012's deferred list.

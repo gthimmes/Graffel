@@ -400,6 +400,90 @@ html, body, #root {
   background: var(--color-bg);
 }
 
+/* v3.16 — in-app modal dialogs + documents library. */
+.graffel-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.graffel-dialog {
+  min-width: 320px;
+  max-width: min(92vw, 460px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  padding: 20px;
+}
+
+.graffel-dialog-title { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--color-text); }
+.graffel-dialog-message { margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
+
+.graffel-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.graffel-dialog-btn {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 7px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.graffel-dialog-btn:hover { background: var(--color-surface-hover, rgba(148, 163, 184, 0.12)); }
+.graffel-dialog-btn.is-primary { background: var(--color-accent, #2563eb); border-color: var(--color-accent, #2563eb); color: #fff; }
+.graffel-dialog-btn.is-primary.is-danger { background: #dc2626; border-color: #dc2626; }
+
+/* Documents library modal */
+.graffel-documents { width: min(92vw, 460px); display: flex; flex-direction: column; max-height: 70vh; }
+.graffel-documents-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.graffel-documents-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
+.graffel-documents-empty { padding: 16px; text-align: center; color: var(--color-text-muted); font-size: 13px; }
+
+.graffel-doc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.graffel-doc-row:hover { background: var(--color-surface-hover, rgba(148, 163, 184, 0.1)); }
+.graffel-doc-row.is-current { background: var(--color-accent-soft, rgba(37, 99, 235, 0.1)); }
+
+.graffel-doc-title {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px 4px;
+  min-width: 0;
+}
+.graffel-doc-name { font-size: 13px; font-weight: 500; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.graffel-doc-time { font-size: 11px; color: var(--color-text-muted); }
+.graffel-doc-rename-input { flex: 1 1 auto; font-size: 13px; padding: 4px 6px; border: 1px solid var(--color-accent, #2563eb); border-radius: 6px; }
+
+.graffel-doc-actions { display: flex; gap: 2px; flex: 0 0 auto; }
+.graffel-doc-icon {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 6px;
+  color: var(--color-text-muted); cursor: pointer; font-size: 15px;
+}
+.graffel-doc-icon:hover { background: var(--color-surface-hover, rgba(148, 163, 184, 0.18)); color: var(--color-text); }
+.graffel-doc-icon.is-danger:hover { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+.graffel-documents-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+
 /* v3.14 drill-down breadcrumbs — top-left overlay showing the current level. */
 .graffel-breadcrumbs {
   position: absolute;

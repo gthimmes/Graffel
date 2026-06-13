@@ -59,8 +59,8 @@ test('changing width and height via inspector resizes the node', async ({ page }
   // And the persisted document carries the new size.
   await page.waitForTimeout(700)
   const stored = await page.evaluate(() => {
-    const raw = localStorage.getItem('graffel.currentDocument.v1')!
-    return JSON.parse(raw).nodes[0].size
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { nodes: Array<{ size: unknown }> } } } } }
+    return w.__graffel.useDiagramStore.getState().toDocument().nodes[0]!.size
   })
   expect(stored).toEqual({ w: 260, h: 140 })
 })
@@ -126,9 +126,8 @@ test('edge selection: switching connector type updates the document', async ({ p
   // The document in localStorage should now reflect the new type (after autosave).
   await page.waitForTimeout(700)
   const storedType = await page.evaluate(() => {
-    const raw = localStorage.getItem('graffel.currentDocument.v1')!
-    const doc = JSON.parse(raw)
-    return doc.edges[0].type
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { toDocument: () => { edges: Array<{ type: string }> } } } } }
+    return w.__graffel.useDiagramStore.getState().toDocument().edges[0]!.type
   })
   expect(storedType).toBe('bezier')
 })
