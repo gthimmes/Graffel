@@ -183,9 +183,14 @@ pain-per-effort order:
   intervening shapes with margin clearance, falling back to a smooth step if
   boxed in); slideable edge labels (drag a label anywhere along its connector,
   position persisted as a 0–1 fraction). Manual waypoints still override routing.
-- **v3.20 Delight & proof** — dark mode, one-shot auto-layout (ELK/dagre)
-  "tidy up", container auto-grow when contents hit the edge, and a 200-node
-  performance fixture asserting the 60fps budget from §3.
+- **v3.20 Delight & proof** — _in progress._
+  - ✅ **One-shot auto-layout ("Tidy up")** — a toolbar button + `View: Tidy up`
+    command run ELK (`elk.algorithm: layered`, lazily code-split so it stays out
+    of the initial bundle) on the level currently in view, arranging its shapes
+    into a clean left-to-right hierarchy and re-fitting the view. Applied as a
+    single undoable step; respects drill-down (only the current level moves).
+  - ⏳ Remaining: dark mode; container auto-grow when contents hit the edge; a
+    200-node performance fixture asserting the 60fps budget from §3.
 
 ---
 

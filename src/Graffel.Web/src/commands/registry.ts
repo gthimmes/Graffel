@@ -10,6 +10,7 @@ import { copyPngToClipboard, exportPng, exportSvg } from '../export/exportImage'
 import { importDocument, newDocument } from '../store/documents'
 import { useDialogStore } from '../ui/dialogStore'
 import { useDocumentsStore } from '../ui/DocumentsDialog'
+import { tidyUpCurrentLevel } from '../canvas/tidyUp'
 
 export interface Command {
   id: string
@@ -69,6 +70,10 @@ export const COMMANDS: Command[] = [
       if (s.selectedNodeIds.length > 0) s.duplicateNodes(s.selectedNodeIds)
     } },
   { id: 'delete-selection',    group: 'Edit', label: 'Delete selection',    shortcut: 'Delete', run: () => useDiagramStore.getState().removeSelection() },
+
+  // View
+  { id: 'view-tidy-up', group: 'View', label: 'Tidy up (auto-layout)', keywords: ['arrange', 'layout', 'organize', 'clean', 'elk', 'auto'],
+    run: () => { void tidyUpCurrentLevel() } },
 
   // File
   { id: 'file-new', group: 'File', label: 'New diagram', keywords: ['clear', 'blank'], run: () => newDocument() },

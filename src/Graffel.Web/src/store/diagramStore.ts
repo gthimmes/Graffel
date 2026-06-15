@@ -54,6 +54,8 @@ interface DiagramState {
 
   addNode: (shapeId: string, position: { x: number; y: number }) => string
   updateNodePosition: (id: string, position: { x: number; y: number }) => void
+  /** Apply a batch of new node positions (e.g. an auto-layout) as one undo step. */
+  applyLayout: (positions: Record<string, { x: number; y: number }>) => void
   updateNodeSize: (id: string, size: { w: number; h: number }) => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeStyle: (id: string, patch: Record<string, unknown>) => void
@@ -211,6 +213,16 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       snapshot(`move:${id}`)
       set((s) => ({
         nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
+      }))
+    },
+
+    applyLayout(positions) {
+      if (Object.keys(positions).length === 0) return
+      snapshot(null)
+      set((s) => ({
+        nodes: s.nodes.map((n) =>
+          positions[n.id] ? { ...n, position: { ...positions[n.id]! } } : n,
+        ),
       }))
     },
 

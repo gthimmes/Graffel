@@ -69,6 +69,21 @@ describe('diagramStore', () => {
       expect(useDiagramStore.getState().edges).toHaveLength(0)
     })
 
+    it('applyLayout moves many nodes in one undoable step', () => {
+      const s = useDiagramStore.getState()
+      const a = s.addNode('service', { x: 0, y: 0 })
+      const b = s.addNode('database', { x: 10, y: 10 })
+      s.applyLayout({ [a]: { x: 100, y: 200 }, [b]: { x: 300, y: 200 } })
+      let nodes = useDiagramStore.getState().nodes
+      expect(nodes.find((n) => n.id === a)!.position).toEqual({ x: 100, y: 200 })
+      expect(nodes.find((n) => n.id === b)!.position).toEqual({ x: 300, y: 200 })
+      // One undo restores BOTH nodes (single history step).
+      useDiagramStore.getState().undo()
+      nodes = useDiagramStore.getState().nodes
+      expect(nodes.find((n) => n.id === a)!.position).toEqual({ x: 0, y: 0 })
+      expect(nodes.find((n) => n.id === b)!.position).toEqual({ x: 10, y: 10 })
+    })
+
     it('setEdgeLabelT stores a clamped 0–1 fraction on the edge', () => {
       const s = useDiagramStore.getState()
       s.addNode('service', { x: 0, y: 0 })

@@ -174,6 +174,7 @@ export function DiagramCanvas() {
     if (typeof window !== 'undefined') {
       ;(window as unknown as Record<string, unknown>).__graffelRf = {
         getViewport: () => rf.getViewport(),
+        fitView: () => { void rf.fitView({ padding: 0.2, duration: 300 }) },
         flowToScreen: (p: { x: number; y: number }) => {
           const v = rf.getViewport()
           // Map a flow point to a viewport-local position; the test layers on

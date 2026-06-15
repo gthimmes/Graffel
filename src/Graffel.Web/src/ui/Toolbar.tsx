@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import { useToolStore } from '../canvas/toolStore'
+import { tidyUpCurrentLevel } from '../canvas/tidyUp'
 import { copyPngToClipboard } from '../export/exportImage'
 import { AuthMenu } from '../auth/AuthMenu'
 import { useAuth } from '../auth/useAuth'
@@ -147,6 +148,12 @@ export function Toolbar() {
         data-testid="action-snap-grid"
         className={snapGrid ? 'toolbar-toggle on' : 'toolbar-toggle'}
       >⌗ Grid</button>
+      <button
+        type="button"
+        onClick={() => void tidyUpCurrentLevel()}
+        title="Tidy up — auto-arrange the shapes at this level"
+        data-testid="action-tidy-up"
+      >✨ Tidy up</button>
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
       <button type="button" onClick={() => useDocumentsStore.getState().open()} data-testid="action-documents">Documents</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
