@@ -4,7 +4,7 @@ import {
   getBezierPath,
   getSmoothStepPath,
   useReactFlow,
-  useStore,
+  useStoreApi,
   type EdgeProps,
   type InternalNode,
   type Node,
@@ -60,12 +60,14 @@ export function WaypointEdge(props: EdgeProps) {
   const routingMode = (data as WaypointEdgeData)?.routingMode ?? 'orthogonal'
   const labelT = (data as WaypointEdgeData)?.labelT ?? 0.5
 
-  // Live node rects from the flow store — obstacle routing recomputes as nodes
-  // move. nodeLookup holds exactly the currently-visible nodes (the drill-down
-  // filter already pruned the rest), so siblings become obstacles. The endpoint
-  // coords (sourceX/Y, targetX/Y) come from React Flow, which already places them
-  // on the silhouette anchor of the facing side chosen in DiagramCanvas.
-  const nodeLookup = useStore((s) => s.nodeLookup)
+  // The endpoint coords (sourceX/Y, targetX/Y) come from React Flow, which
+  // places them on the silhouette anchor of the facing side chosen in
+  // DiagramCanvas — and React Flow only changes them (re-rendering this edge)
+  // when THIS edge's own endpoints move. Obstacle rects are read imperatively
+  // from the store at compute time (via the stable store API) rather than
+  // subscribed to, so an unrelated node moving elsewhere doesn't re-run every
+  // edge's router. Net effect: dragging a node only re-routes its incident edges.
+  const storeApi = useStoreApi()
 
   const geom = useMemo(() => {
     const s = { x: sourceX, y: sourceY }
@@ -84,7 +86,7 @@ export function WaypointEdge(props: EdgeProps) {
       const bx0 = Math.min(s.x, t.x) - pad, bx1 = Math.max(s.x, t.x) + pad
       const by0 = Math.min(s.y, t.y) - pad, by1 = Math.max(s.y, t.y) + pad
       const obstacles: Rect[] = []
-      for (const [nid, n] of nodeLookup) {
+      for (const [nid, n] of storeApi.getState().nodeLookup) {
         if (nid === sourceId || nid === targetId) continue
         const r = rectOf(n)
         if (!r) continue
@@ -107,7 +109,7 @@ export function WaypointEdge(props: EdgeProps) {
     }
     // straight
     return { path: buildWaypointPath(s, [], t), points: [s, t], source: s, target: t }
-  }, [waypoints, routingMode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, nodeLookup, sourceId, targetId])
+  }, [waypoints, routingMode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, storeApi, sourceId, targetId])
 
   const labelPos = pointAtFraction(geom.points, labelT)
 

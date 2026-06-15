@@ -29,7 +29,7 @@ import {
   sortNodesByDepth,
 } from './nesting'
 import { getShape, resolveIsContainer } from '../shapes/registry'
-import type { GraffelNode } from '../format/types'
+import type { GraffelEdge, GraffelNode } from '../format/types'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
 import { chooseSides } from './floating'
@@ -82,6 +82,13 @@ export function DiagramCanvas() {
   // their stored positions are already parent-relative, so no conversion.
   const visible = useMemo(() => visibleNodeIds(nodes, viewRootId), [nodes, viewRootId])
 
+  // Per-node / per-edge identity caches. On a node drag the store replaces only
+  // the moved node's object (others keep reference identity), so we can hand React
+  // Flow the SAME rf object for every unchanged node/edge — letting it skip
+  // re-rendering all 200 nodes + 211 edges when just one moved.
+  const nodeCacheRef = useRef(new Map<string, { node: GraffelNode; sig: string; rf: ReturnType<typeof toReactFlowNode> }>())
+  const edgeCacheRef = useRef(new Map<string, { edge: GraffelEdge; sig: string; rf: ReturnType<typeof toReactFlowEdge> & { selected?: boolean; source: string; target: string } }>())
+
   const rfNodes = useMemo(() => {
     const childCounts = new Map<string, number>()
     for (const n of nodes) {
@@ -98,32 +105,65 @@ export function DiagramCanvas() {
     }
     // Parents must precede their children in the array (React Flow requirement).
     const ordered = sortNodesByDepth(nodes.filter((n) => visible.has(n.id)))
-    return ordered.map((n, i) => {
+    const cache = nodeCacheRef.current
+    const next = new Map<string, { node: GraffelNode; sig: string; rf: ReturnType<typeof toReactFlowNode> }>()
+    const result = ordered.map((n, i) => {
+      const selected = selectedNodeIds.includes(n.id)
+      const childCount = childCounts.get(n.id) ?? 0
+      const stubs = stubsByNode.get(n.id) ?? []
+      // Everything the rf object depends on beyond the (reference-stable) store
+      // node: array index → zIndex, selection, child count, stubs, view root.
+      const sig = `${i}|${selected ? 1 : 0}|${childCount}|${viewRootId ?? ''}|${JSON.stringify(stubs)}`
+      const prev = cache.get(n.id)
+      if (prev && prev.node === n && prev.sig === sig) {
+        next.set(n.id, prev)
+        return prev.rf
+      }
       const rf = toReactFlowNode(
         (n.parentId ?? null) === viewRootId ? { ...n, parentId: null } : n,
       )
       rf.data = {
         ...rf.data,
         collapsed: (n.data as { collapsed?: boolean }).collapsed === true,
-        childCount: childCounts.get(n.id) ?? 0,
-        stubs: stubsByNode.get(n.id) ?? [],
+        childCount,
+        stubs,
       }
       // Explicit z-index from array position makes z-order (bring-to-front /
       // send-to-back) deterministic and immediate — independent of DOM order and
       // of selection. Depth-sorted, so a container's children always sit above it.
       rf.zIndex = i
-      return { ...rf, selected: selectedNodeIds.includes(n.id) }
+      rf.selected = selected
+      next.set(n.id, { node: n, sig, rf })
+      return rf
     })
+    nodeCacheRef.current = next
+    return result
   }, [nodes, edges, selectedNodeIds, visible, viewRootId])
 
   const rfEdges = useMemo(() => {
     const byId = indexNodes(nodes)
+    const cache = edgeCacheRef.current
+    const next = new Map<string, { edge: GraffelEdge; sig: string; rf: ReturnType<typeof toReactFlowEdge> & { selected?: boolean; source: string; target: string } }>()
     const out = []
     for (const e of edges) {
       // Remap endpoints to their visible stand-ins (e.g. a collapsed container);
       // edges with an endpoint outside this level are not rendered.
       const remap = remapEdgeForView(e, visible, byId)
       if (!remap) continue
+      const sn = byId.get(remap.source)
+      const tn = byId.get(remap.target)
+      const sr = sn ? absoluteRect(sn, byId) : null
+      const tr = tn ? absoluteRect(tn, byId) : null
+      const selected = selectedEdgeIds.includes(e.id)
+      // Reuse the cached rf edge unless the store edge, its endpoints' absolute
+      // positions (which drive the facing-side choice), or selection changed.
+      const sig = `${remap.source}|${remap.target}|${sr ? `${sr.x},${sr.y}` : ''}|${tr ? `${tr.x},${tr.y}` : ''}|${selected ? 1 : 0}`
+      const prev = cache.get(e.id)
+      if (prev && prev.edge === e && prev.sig === sig) {
+        next.set(e.id, prev)
+        out.push(prev.rf)
+        continue
+      }
       const rfEdge = toReactFlowEdge(e)
       // Floating edges (no manual waypoints): auto-select each shape's facing
       // silhouette anchor so the line attaches cleanly and re-sides as nodes
@@ -131,27 +171,19 @@ export function DiagramCanvas() {
       // that routing). Sides depend only on the relative direction between two
       // same-level siblings, so absolute rects are safe at any drill level.
       const hasWaypoints = (e.data.waypoints?.length ?? 0) > 0
-      if (!hasWaypoints) {
-        const sn = byId.get(remap.source)
-        const tn = byId.get(remap.target)
-        if (sn && tn) {
-          const sr = absoluteRect(sn, byId)
-          const tr = absoluteRect(tn, byId)
-          const { sourceSide, targetSide } = chooseSides(
-            { x: sr.x, y: sr.y, width: sr.w, height: sr.h },
-            { x: tr.x, y: tr.y, width: tr.w, height: tr.h },
-          )
-          rfEdge.sourceHandle = sourceSide
-          rfEdge.targetHandle = targetSide
-        }
+      if (!hasWaypoints && sr && tr) {
+        const { sourceSide, targetSide } = chooseSides(
+          { x: sr.x, y: sr.y, width: sr.w, height: sr.h },
+          { x: tr.x, y: tr.y, width: tr.w, height: tr.h },
+        )
+        rfEdge.sourceHandle = sourceSide
+        rfEdge.targetHandle = targetSide
       }
-      out.push({
-        ...rfEdge,
-        source: remap.source,
-        target: remap.target,
-        selected: selectedEdgeIds.includes(e.id),
-      })
+      const rf = { ...rfEdge, source: remap.source, target: remap.target, selected }
+      next.set(e.id, { edge: e, sig, rf })
+      out.push(rf)
     }
+    edgeCacheRef.current = next
     return out
   }, [edges, nodes, selectedEdgeIds, visible])
 
@@ -174,6 +206,7 @@ export function DiagramCanvas() {
     if (typeof window !== 'undefined') {
       ;(window as unknown as Record<string, unknown>).__graffelRf = {
         getViewport: () => rf.getViewport(),
+        setViewport: (v: { x: number; y: number; zoom: number }) => rf.setViewport(v),
         fitView: () => { void rf.fitView({ padding: 0.2, duration: 300 }) },
         flowToScreen: (p: { x: number; y: number }) => {
           const v = rf.getViewport()

@@ -189,8 +189,14 @@ pain-per-effort order:
     of the initial bundle) on the level currently in view, arranging its shapes
     into a clean left-to-right hierarchy and re-fitting the view. Applied as a
     single undoable step; respects drill-down (only the current level moves).
-  - ⏳ Remaining: dark mode; container auto-grow when contents hit the edge; a
-    200-node performance fixture asserting the 60fps budget from §3.
+  - ✅ **200-node performance proof** — an E2E fixture seeds 200 nodes + ~210
+    edges and samples every animation frame: continuous pan+zoom holds the §3
+    **60fps budget** (median 16.7ms). The same fixture surfaced that dragging a
+    heavily-connected node was a full-scene re-render (~8fps); fixed by caching
+    rf node/edge identities so a move only re-renders the moved node + its
+    incident edges (worst-case 13-edge hub now ~30fps), and by reading edge
+    obstacle rects imperatively instead of subscribing every edge to node changes.
+  - ⏳ Remaining: dark mode; container auto-grow when contents hit the edge.
 
 ---
 
