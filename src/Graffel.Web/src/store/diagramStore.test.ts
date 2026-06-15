@@ -68,6 +68,21 @@ describe('diagramStore', () => {
       s.addEdge(id, id, { sourceHandle: 'right', targetHandle: 'left' })
       expect(useDiagramStore.getState().edges).toHaveLength(0)
     })
+
+    it('setEdgeLabelT stores a clamped 0–1 fraction on the edge', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('service', { x: 0, y: 0 })
+      s.addNode('database', { x: 200, y: 0 })
+      const [n1, n2] = useDiagramStore.getState().nodes
+      s.addEdge(n1!.id, n2!.id, { sourceHandle: 'right', targetHandle: 'left' })
+      const eid = useDiagramStore.getState().edges[0]!.id
+      s.setEdgeLabelT(eid, 0.25)
+      expect(useDiagramStore.getState().edges[0]!.data.labelT).toBe(0.25)
+      s.setEdgeLabelT(eid, 5)
+      expect(useDiagramStore.getState().edges[0]!.data.labelT).toBe(1)
+      s.setEdgeLabelT(eid, -3)
+      expect(useDiagramStore.getState().edges[0]!.data.labelT).toBe(0)
+    })
   })
 
   describe('serialization', () => {

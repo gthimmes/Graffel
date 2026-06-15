@@ -51,6 +51,7 @@ export function toReactFlowEdge(e: GraffelEdge): RFEdge {
     data: {
       waypoints: e.data.waypoints ?? [],
       routingMode: e.type,
+      labelT: e.data.labelT,
     },
     style: {
       stroke: s.strokeColor,

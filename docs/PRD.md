@@ -176,9 +176,13 @@ pain-per-effort order:
   discovered immediately. Shortcut tips (`/` palette, double-click-to-drill,
   R/E/D/T) on the overlay, and a hover "⤢ Double-click to open" hint on every
   container. Overlay never shows in read-only share views.
-- **v3.19 Connector mastery** — floating edges (anchors slide to face the
-  connected shape), obstacle-aware orthogonal routing (lines stop cutting
-  through shapes), slideable edge labels.
+- **v3.19 Connector mastery** — ✅ shipped: floating edges (each end auto-selects
+  the shape's facing silhouette anchor and re-sides live as nodes move — no more
+  lines stabbing through or dangling off a corner); obstacle-aware orthogonal
+  routing (a Hanan-lattice + fewest-bends router bends connectors around
+  intervening shapes with margin clearance, falling back to a smooth step if
+  boxed in); slideable edge labels (drag a label anywhere along its connector,
+  position persisted as a 0–1 fraction). Manual waypoints still override routing.
 - **v3.20 Delight & proof** — dark mode, one-shot auto-layout (ELK/dagre)
   "tidy up", container auto-grow when contents hit the edge, and a 200-node
   performance fixture asserting the 60fps budget from §3.

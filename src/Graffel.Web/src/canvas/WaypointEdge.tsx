@@ -3,29 +3,48 @@ import {
   EdgeLabelRenderer,
   getBezierPath,
   getSmoothStepPath,
-  getStraightPath,
   useReactFlow,
+  useStore,
   type EdgeProps,
+  type InternalNode,
+  type Node,
 } from '@xyflow/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import type { EdgeType } from '../format/types'
 import { useEdgeMenuStore } from './edgeMenuStore'
+import type { Point, Rect } from './floating'
+import { routeOrthogonal } from './orthogonalRoute'
 import {
   buildWaypointPath,
+  fractionAtPoint,
+  pointAtFraction,
   segmentMidpoints,
   snapToGrid,
-  type Point,
 } from './waypointPath'
 
 interface WaypointEdgeData extends Record<string, unknown> {
   waypoints?: Point[]
   routingMode?: EdgeType
+  labelT?: number
+}
+
+const ROUTE_MARGIN = 12
+
+function rectOf(n: InternalNode<Node> | undefined): Rect | null {
+  if (!n) return null
+  const p = n.internals.positionAbsolute
+  const w = n.measured?.width
+  const h = n.measured?.height
+  if (p == null || w == null || h == null) return null
+  return { x: p.x, y: p.y, width: w, height: h }
 }
 
 export function WaypointEdge(props: EdgeProps) {
   const {
     id,
+    source: sourceId,
+    target: targetId,
     sourceX, sourceY,
     targetX, targetY,
     sourcePosition, targetPosition,
@@ -39,25 +58,58 @@ export function WaypointEdge(props: EdgeProps) {
 
   const waypoints = ((data as WaypointEdgeData)?.waypoints ?? []) as Point[]
   const routingMode = (data as WaypointEdgeData)?.routingMode ?? 'orthogonal'
-  const source = { x: sourceX, y: sourceY }
-  const target = { x: targetX, y: targetY }
+  const labelT = (data as WaypointEdgeData)?.labelT ?? 0.5
 
-  let path: string
-  let labelX: number
-  let labelY: number
-  if (waypoints.length > 0) {
-    // User-owned routing: straight segments between waypoints.
-    path = buildWaypointPath(source, waypoints, target)
-    const pts = [source, ...waypoints, target]
-    const mid = pts[Math.floor(pts.length / 2)]!
-    labelX = mid.x; labelY = mid.y
-  } else if (routingMode === 'straight') {
-    [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY })
-  } else if (routingMode === 'bezier') {
-    [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
-  } else {
-    [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
-  }
+  // Live node rects from the flow store — obstacle routing recomputes as nodes
+  // move. nodeLookup holds exactly the currently-visible nodes (the drill-down
+  // filter already pruned the rest), so siblings become obstacles. The endpoint
+  // coords (sourceX/Y, targetX/Y) come from React Flow, which already places them
+  // on the silhouette anchor of the facing side chosen in DiagramCanvas.
+  const nodeLookup = useStore((s) => s.nodeLookup)
+
+  const geom = useMemo(() => {
+    const s = { x: sourceX, y: sourceY }
+    const t = { x: targetX, y: targetY }
+
+    // Manual waypoints are an explicit override — the user owns that routing.
+    if (waypoints.length > 0) {
+      const pts = [s, ...waypoints, t]
+      return { path: buildWaypointPath(s, waypoints, t), points: pts, source: s, target: t }
+    }
+
+    if (routingMode === 'orthogonal') {
+      // Only nearby siblings can realistically block the run — bound the
+      // obstacle set (and thus the routing lattice) to keep it cheap.
+      const pad = 80
+      const bx0 = Math.min(s.x, t.x) - pad, bx1 = Math.max(s.x, t.x) + pad
+      const by0 = Math.min(s.y, t.y) - pad, by1 = Math.max(s.y, t.y) + pad
+      const obstacles: Rect[] = []
+      for (const [nid, n] of nodeLookup) {
+        if (nid === sourceId || nid === targetId) continue
+        const r = rectOf(n)
+        if (!r) continue
+        if (r.x + r.width < bx0 || r.x > bx1 || r.y + r.height < by0 || r.y > by1) continue
+        obstacles.push(r)
+      }
+      const route = routeOrthogonal(s, t, obstacles, { margin: ROUTE_MARGIN })
+      if (route && route.length >= 2) {
+        return { path: buildWaypointPath(route[0]!, route.slice(1, -1), route[route.length - 1]!), points: route, source: s, target: t }
+      }
+      // No clean orthogonal route — fall back to a smooth step so the edge still
+      // renders sensibly.
+      const [p] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+      return { path: p, points: [s, t], source: s, target: t }
+    }
+
+    if (routingMode === 'bezier') {
+      const [p] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+      return { path: p, points: [s, t], source: s, target: t }
+    }
+    // straight
+    return { path: buildWaypointPath(s, [], t), points: [s, t], source: s, target: t }
+  }, [waypoints, routingMode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, nodeLookup, sourceId, targetId])
+
+  const labelPos = pointAtFraction(geom.points, labelT)
 
   const readOnly = useDiagramStore((s) => s.readOnly)
   const openMenu = useEdgeMenuStore((s) => s.openAt)
@@ -71,10 +123,10 @@ export function WaypointEdge(props: EdgeProps) {
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={20} />
+      <BaseEdge id={id} path={geom.path} style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={20} />
       {/* Extra invisible-but-clickable path widens the context-menu hit area. */}
       <path
-        d={path}
+        d={geom.path}
         fill="none"
         stroke="transparent"
         strokeWidth={20}
@@ -82,12 +134,19 @@ export function WaypointEdge(props: EdgeProps) {
         onContextMenu={onContextMenu}
         data-testid={`edge-hitbox-${id}`}
       />
-      <EdgeLabel edgeId={id} x={labelX} y={labelY} label={typeof label === 'string' ? label : ''} readOnly={readOnly} />
+      <EdgeLabel
+        edgeId={id}
+        x={labelPos.x}
+        y={labelPos.y}
+        label={typeof label === 'string' ? label : ''}
+        pathPoints={geom.points}
+        readOnly={readOnly}
+      />
       {selected && !readOnly ? (
         <WaypointHandles
           edgeId={id}
-          source={source}
-          target={target}
+          source={geom.source}
+          target={geom.target}
           waypoints={waypoints}
         />
       ) : null}
@@ -95,11 +154,24 @@ export function WaypointEdge(props: EdgeProps) {
   )
 }
 
-/** Connector label rendered at the path midpoint; double-click to edit inline. */
-function EdgeLabel({ edgeId, x, y, label, readOnly }: { edgeId: string; x: number; y: number; label: string; readOnly: boolean }) {
+/**
+ * Connector label rendered at a fraction along the path; double-click to edit
+ * inline, drag to slide it anywhere along the connector.
+ */
+function EdgeLabel({ edgeId, x, y, label, pathPoints, readOnly }: {
+  edgeId: string
+  x: number
+  y: number
+  label: string
+  pathPoints: Point[]
+  readOnly: boolean
+}) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel)
+  const setEdgeLabelT = useDiagramStore((s) => s.setEdgeLabelT)
+  const { screenToFlowPosition } = useReactFlow()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(label)
+  const draggingRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => { setDraft(label) }, [label])
   useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
@@ -112,11 +184,31 @@ function EdgeLabel({ edgeId, x, y, label, readOnly }: { edgeId: string; x: numbe
     setEditing(false)
   }
 
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (readOnly || editing || e.button !== 0) return
+    e.stopPropagation()
+    draggingRef.current = false
+    ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
+
+    function onMove(ev: PointerEvent) {
+      draggingRef.current = true
+      const flow = screenToFlowPosition({ x: ev.clientX, y: ev.clientY })
+      setEdgeLabelT(edgeId, fractionAtPoint(pathPoints, flow))
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   return (
     <EdgeLabelRenderer>
       <div
-        className="graffel-edge-label"
+        className={`graffel-edge-label${readOnly || editing ? '' : ' is-draggable'}`}
         style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`, pointerEvents: readOnly ? 'none' : 'all' }}
+        onPointerDown={onPointerDown}
         onDoubleClick={(e) => { if (!readOnly) { e.stopPropagation(); setEditing(true) } }}
         data-testid={`edge-label-${edgeId}`}
       >

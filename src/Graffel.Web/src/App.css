@@ -806,6 +806,12 @@ html, body, #root {
   user-select: none;
   cursor: default;
 }
+.graffel-edge-label.is-draggable {
+  cursor: grab;
+}
+.graffel-edge-label.is-draggable:active {
+  cursor: grabbing;
+}
 .graffel-edge-label-input {
   font: inherit;
   border: 1px solid var(--color-accent);

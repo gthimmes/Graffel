@@ -51,6 +51,8 @@ export interface GraffelEdge {
     label: string
     style?: Record<string, unknown>
     waypoints?: Array<{ x: number; y: number }>
+    /** Label position as a fraction (0–1) along the connector path. Default 0.5. */
+    labelT?: number
   }
 }
 

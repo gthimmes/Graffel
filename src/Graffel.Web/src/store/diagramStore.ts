@@ -92,6 +92,8 @@ interface DiagramState {
   moveEdgeWaypoint: (id: string, index: number, point: { x: number; y: number }) => void
   removeEdgeWaypoint: (id: string, index: number) => void
   clearEdgeWaypoints: (id: string) => void
+  /** Set the connector label's position as a fraction (0–1) along its path. */
+  setEdgeLabelT: (id: string, t: number) => void
   addEdge: (
     source: string,
     target: string,
@@ -410,6 +412,16 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       snapshot(null)
       set((s) => ({
         edges: s.edges.map((e) => (e.id === id ? { ...e, type } : e)),
+      }))
+    },
+
+    setEdgeLabelT(id, t) {
+      const clamped = Math.max(0, Math.min(1, t))
+      snapshot(`elabelt:${id}`)
+      set((s) => ({
+        edges: s.edges.map((e) =>
+          e.id === id ? { ...e, data: { ...e.data, labelT: clamped } } : e,
+        ),
       }))
     },
 

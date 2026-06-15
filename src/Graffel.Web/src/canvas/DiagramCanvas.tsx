@@ -32,6 +32,7 @@ import { getShape, resolveIsContainer } from '../shapes/registry'
 import type { GraffelNode } from '../format/types'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
+import { chooseSides } from './floating'
 import { EdgeContextMenu } from './EdgeContextMenu'
 import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
@@ -123,8 +124,29 @@ export function DiagramCanvas() {
       // edges with an endpoint outside this level are not rendered.
       const remap = remapEdgeForView(e, visible, byId)
       if (!remap) continue
+      const rfEdge = toReactFlowEdge(e)
+      // Floating edges (no manual waypoints): auto-select each shape's facing
+      // silhouette anchor so the line attaches cleanly and re-sides as nodes
+      // move. Manual-waypoint edges keep their stored handles (the user owns
+      // that routing). Sides depend only on the relative direction between two
+      // same-level siblings, so absolute rects are safe at any drill level.
+      const hasWaypoints = (e.data.waypoints?.length ?? 0) > 0
+      if (!hasWaypoints) {
+        const sn = byId.get(remap.source)
+        const tn = byId.get(remap.target)
+        if (sn && tn) {
+          const sr = absoluteRect(sn, byId)
+          const tr = absoluteRect(tn, byId)
+          const { sourceSide, targetSide } = chooseSides(
+            { x: sr.x, y: sr.y, width: sr.w, height: sr.h },
+            { x: tr.x, y: tr.y, width: tr.w, height: tr.h },
+          )
+          rfEdge.sourceHandle = sourceSide
+          rfEdge.targetHandle = targetSide
+        }
+      }
       out.push({
-        ...toReactFlowEdge(e),
+        ...rfEdge,
         source: remap.source,
         target: remap.target,
         selected: selectedEdgeIds.includes(e.id),
