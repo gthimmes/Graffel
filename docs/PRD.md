@@ -183,7 +183,7 @@ pain-per-effort order:
   intervening shapes with margin clearance, falling back to a smooth step if
   boxed in); slideable edge labels (drag a label anywhere along its connector,
   position persisted as a 0–1 fraction). Manual waypoints still override routing.
-- **v3.20 Delight & proof** — _in progress._
+- **v3.20 Delight & proof** — ✅ shipped.
   - ✅ **One-shot auto-layout ("Tidy up")** — a toolbar button + `View: Tidy up`
     command run ELK (`elk.algorithm: layered`, lazily code-split so it stays out
     of the initial bundle) on the level currently in view, arranging its shapes
@@ -196,7 +196,17 @@ pain-per-effort order:
     rf node/edge identities so a move only re-renders the moved node + its
     incident edges (worst-case 13-edge hub now ~30fps), and by reading edge
     obstacle rects imperatively instead of subscribing every edge to node changes.
-  - ⏳ Remaining: dark mode; container auto-grow when contents hit the edge.
+  - ✅ **Dark mode** — a toolbar toggle (🌙/☀️) flips the chrome + canvas palette
+    via a `data-theme` attribute on `<html>`; preference persists (defaults to the
+    OS setting). The whole UI is CSS-variable driven, so only one override block is
+    needed; shape fills/text are authored colors, so diagrams keep their look.
+  - ✅ **Container auto-grow** — dragging a child to (or past) a container's edge
+    grows the container to keep it inside, shifting the origin and offsetting
+    children when the content pokes past the top/left. Pure `fitContainer`, applied
+    on drag-stop.
+
+**Path to phenomenal: complete.** All five post-v3.14 gaps (clipboard, documents,
+depth, first-run, connectors) plus the delight/proof slice are shipped.
 
 ---
 

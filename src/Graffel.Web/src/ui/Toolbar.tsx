@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useDiagramStore } from '../store/diagramStore'
 import { useToolStore } from '../canvas/toolStore'
 import { tidyUpCurrentLevel } from '../canvas/tidyUp'
+import { resolvePref, useThemeStore } from './themeStore'
 import { copyPngToClipboard } from '../export/exportImage'
 import { AuthMenu } from '../auth/AuthMenu'
 import { useAuth } from '../auth/useAuth'
@@ -42,6 +43,9 @@ export function Toolbar() {
   const setSnapGrid = useDiagramStore((s) => s.setSnapGrid)
   const tool = useToolStore((s) => s.tool)
   const setTool = useToolStore((s) => s.setTool)
+  const themePref = useThemeStore((s) => s.pref)
+  const toggleTheme = useThemeStore((s) => s.toggle)
+  const isDark = resolvePref(themePref) === 'dark'
   const fileInput = useRef<HTMLInputElement>(null)
   const [copiedPng, setCopiedPng] = useState(false)
 
@@ -154,6 +158,14 @@ export function Toolbar() {
         title="Tidy up — auto-arrange the shapes at this level"
         data-testid="action-tidy-up"
       >✨ Tidy up</button>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+        aria-pressed={isDark}
+        data-testid="action-theme-toggle"
+        className="toolbar-toggle"
+      >{isDark ? '☀️ Light' : '🌙 Dark'}</button>
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
       <button type="button" onClick={() => useDocumentsStore.getState().open()} data-testid="action-documents">Documents</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>

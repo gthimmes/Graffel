@@ -69,6 +69,42 @@ describe('diagramStore', () => {
       expect(useDiagramStore.getState().edges).toHaveLength(0)
     })
 
+    it('growContainer expands a container and offsets children to keep them inside', () => {
+      const s = useDiagramStore.getState()
+      // A container with a child poking past the LEFT edge (negative relative x).
+      s.addNode('arch-core:boundary', { x: 100, y: 100 })
+      const cid = useDiagramStore.getState().nodes[0]!.id
+      s.updateNodeSize(cid, { w: 300, h: 200 })
+      s.addNode('basic:rectangle', { x: 0, y: 0 })
+      const kid = useDiagramStore.getState().nodes[1]!.id
+      s.setNodeParent(kid, cid)
+      // Place the child past the left/top padding line.
+      s.updateNodePosition(kid, { x: -30, y: -10 })
+
+      s.growContainer(cid)
+      const after = useDiagramStore.getState().nodes
+      const container = after.find((n) => n.id === cid)!
+      const child = after.find((n) => n.id === kid)!
+      // Origin shifted left/up; child offset to compensate → child now ≥ padding.
+      expect(container.position.x).toBeLessThan(100)
+      expect(child.position.x).toBeGreaterThanOrEqual(24)
+      expect(child.position.y).toBeGreaterThanOrEqual(24)
+    })
+
+    it('growContainer is a no-op when children already fit', () => {
+      const s = useDiagramStore.getState()
+      s.addNode('arch-core:boundary', { x: 0, y: 0 })
+      const cid = useDiagramStore.getState().nodes[0]!.id
+      s.updateNodeSize(cid, { w: 400, h: 300 })
+      s.addNode('basic:rectangle', { x: 50, y: 50 })
+      const kid = useDiagramStore.getState().nodes[1]!.id
+      s.setNodeParent(kid, cid)
+      const before = useDiagramStore.getState().nodes.find((n) => n.id === cid)!.size
+      s.growContainer(cid)
+      const after = useDiagramStore.getState().nodes.find((n) => n.id === cid)!.size
+      expect(after).toEqual(before)
+    })
+
     it('applyLayout moves many nodes in one undoable step', () => {
       const s = useDiagramStore.getState()
       const a = s.addNode('service', { x: 0, y: 0 })

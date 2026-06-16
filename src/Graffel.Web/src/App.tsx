@@ -8,6 +8,7 @@ import { CommandPalette } from './ui/CommandPalette'
 import { AppDialogs } from './ui/AppDialogs'
 import { DocumentsDialog } from './ui/DocumentsDialog'
 import { ShareView } from './share/ShareView'
+import { useApplyTheme } from './ui/themeStore'
 import './App.css'
 
 const SHARE_PREFIX = '/v/'
@@ -21,6 +22,7 @@ function getShareToken(): string | null {
 }
 
 export default function App() {
+  useApplyTheme()
   const shareToken = getShareToken()
   if (shareToken) return <ShareView token={shareToken} />
 

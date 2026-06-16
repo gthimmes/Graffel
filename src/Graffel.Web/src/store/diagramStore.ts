@@ -13,6 +13,7 @@ import type {
 import { allShapeIds, getShape, resolveIsContainer } from '../shapes/registry'
 import { absolutePosition, absoluteRect, descendantIds, indexNodes } from '../canvas/nesting'
 import { isClipboardFragment, materializeFragment, type ClipboardFragment } from '../canvas/clipboard'
+import { fitContainer } from '../canvas/containerFit'
 
 const FALLBACK_SIZE = { w: 160, h: 80 }
 
@@ -56,6 +57,8 @@ interface DiagramState {
   updateNodePosition: (id: string, position: { x: number; y: number }) => void
   /** Apply a batch of new node positions (e.g. an auto-layout) as one undo step. */
   applyLayout: (positions: Record<string, { x: number; y: number }>) => void
+  /** Grow a container to keep its children inside (auto-grow on drag). No-op if it already fits. */
+  growContainer: (id: string) => void
   updateNodeSize: (id: string, size: { w: number; h: number }) => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeStyle: (id: string, patch: Record<string, unknown>) => void
@@ -223,6 +226,25 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         nodes: s.nodes.map((n) =>
           positions[n.id] ? { ...n, position: { ...positions[n.id]! } } : n,
         ),
+      }))
+    },
+
+    growContainer(id) {
+      const s = get()
+      const container = s.nodes.find((n) => n.id === id)
+      if (!container) return
+      const children = s.nodes.filter((n) => (n.parentId ?? null) === id)
+      const fit = fitContainer(container, children)
+      if (!fit) return
+      snapshot(null)
+      set((st) => ({
+        nodes: st.nodes.map((n) => {
+          if (n.id === id) return { ...n, position: fit.position, size: fit.size }
+          if ((n.parentId ?? null) === id) {
+            return { ...n, position: { x: n.position.x + fit.childDelta.x, y: n.position.y + fit.childDelta.y } }
+          }
+          return n
+        }),
       }))
     },
 

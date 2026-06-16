@@ -33,6 +33,7 @@ import type { GraffelEdge, GraffelNode } from '../format/types'
 import { ShapeNode } from './ShapeNode'
 import { WaypointEdge } from './WaypointEdge'
 import { chooseSides } from './floating'
+import { resolvePref, useThemeStore } from '../ui/themeStore'
 import { EdgeContextMenu } from './EdgeContextMenu'
 import { useEdgeMenuStore } from './edgeMenuStore'
 import { EdgeMarkerDefs } from './EdgeMarkers'
@@ -76,6 +77,7 @@ export function DiagramCanvas() {
   const closeNodeMenu = useNodeMenuStore((s) => s.close)
 
   const viewRootId = useDiagramStore((s) => s.viewRootId)
+  const dark = resolvePref(useThemeStore((s) => s.pref)) === 'dark'
 
   // Drill-down: only the current level's subtree renders (collapsed containers
   // hide theirs); direct children of the view root become RF top-level nodes —
@@ -421,6 +423,9 @@ export function DiagramCanvas() {
     if (targetId !== (dragged.parentId ?? null)) {
       setNodeParent(dragged.id, targetId)
     }
+    // Auto-grow the container the node ended up in so it never clips its child.
+    const finalParent = targetId !== (dragged.parentId ?? null) ? targetId : (dragged.parentId ?? null)
+    if (finalParent) useDiagramStore.getState().growContainer(finalParent)
   }, [setNodeParent])
 
   // Double-click a container → drill into it. Navigation, not mutation, so it is
@@ -709,7 +714,7 @@ export function DiagramCanvas() {
         fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={16} size={1} />
+        <Background gap={16} size={1} color={dark ? '#363b47' : '#c7ccd6'} />
         <Controls />
         <MiniMap pannable zoomable />
         <AlignmentGuides guides={activeGuides} />
