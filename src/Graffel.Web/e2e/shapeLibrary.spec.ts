@@ -92,6 +92,21 @@ test('AWS is an opt-in pack: hidden by default, appears once enabled, and insert
   expect(nodeType).toBe('aws:lambda')
 })
 
+test('all three cloud vendor packs are opt-in and toggle on independently', async ({ page }) => {
+  await page.getByTestId('palette-manage-libraries').click()
+  // All three vendor packs are present in the manager…
+  await expect(page.getByTestId('library-toggle-aws')).toBeVisible()
+  await expect(page.getByTestId('library-toggle-gcp')).toBeVisible()
+  await expect(page.getByTestId('library-toggle-azure')).toBeVisible()
+  // …and off by default: enabling just GCP surfaces a GCP shape, not Azure's.
+  await page.getByTestId('library-toggle-gcp').click()
+  await page.getByTestId('library-manager-close').click()
+  await page.getByTestId('palette-search').fill('firestore')
+  await expect(page.getByTestId('palette-shape-gcp-firestore')).toBeVisible()
+  await page.getByTestId('palette-search').fill('cosmos')
+  await expect(page.getByTestId('palette-shape-azure-cosmos-db')).toHaveCount(0)
+})
+
 test('enabling the AWS pack persists across reload', async ({ page }) => {
   await page.getByTestId('palette-manage-libraries').click()
   await page.getByTestId('library-toggle-aws').click()

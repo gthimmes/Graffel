@@ -9,6 +9,8 @@ import { K8S_PACK } from './packs/k8s'
 import { UML_PACK } from './packs/uml'
 import { FLOW_PACK } from './packs/flow'
 import { AWS_PACK } from './packs/aws'
+import { GCP_PACK } from './packs/gcp'
+import { AZURE_PACK } from './packs/azure'
 
 /**
  * The pack manifest. Add new packs here. Order is the order they appear in the
@@ -19,6 +21,8 @@ export const PACKS: Pack[] = [
   ARCH_CORE_PACK,
   CLOUD_PACK,
   AWS_PACK,
+  GCP_PACK,
+  AZURE_PACK,
   K8S_PACK,
   UML_PACK,
   FLOW_PACK,

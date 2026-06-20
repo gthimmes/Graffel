@@ -73,6 +73,8 @@ v3.1–v3.4 (now reverted) shipped per-vendor stylized icons (AWS, GCP, Azure, K
 
 This also made `Pack.defaultEnabled` load-bearing for the first time: library prefs now resolve a pack's visibility as `explicit user override ?? pack.defaultEnabled` (was previously "enabled unless in a disabled list", which ignored `defaultEnabled`). Legacy `{ disabledPacks: [...] }` prefs migrate to the new `{ overrides: {...} }` shape on load.
 
+**v3.22 — GCP + Azure packs** follow the same opt-in off-ramp. To keep the v3.5 "looked the same across packs" failure from recurring, each vendor uses a *visually distinct tile idiom*: AWS = filled per-category color tiles with white glyphs; GCP = white tiles with thin borders and brand-colored line glyphs; Azure = filled Azure-blue tiles with white glyphs. A user typically enables one vendor, and the three never share a look, so the concept overlap stays acceptable for opt-in packs.
+
 ### Palette UX
 
 - Top: search input that filters across all enabled packs (matches `label` + `keywords`).
