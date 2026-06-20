@@ -8,6 +8,7 @@ import { CLOUD_PACK } from './packs/cloud'
 import { K8S_PACK } from './packs/k8s'
 import { UML_PACK } from './packs/uml'
 import { FLOW_PACK } from './packs/flow'
+import { AWS_PACK } from './packs/aws'
 
 /**
  * The pack manifest. Add new packs here. Order is the order they appear in the
@@ -17,6 +18,7 @@ export const PACKS: Pack[] = [
   BASIC_PACK,
   ARCH_CORE_PACK,
   CLOUD_PACK,
+  AWS_PACK,
   K8S_PACK,
   UML_PACK,
   FLOW_PACK,
@@ -126,41 +128,51 @@ export function searchShapes(query: string): ShapeDef[] {
 
 const LIBRARY_PREFS_KEY = 'graffel.libraryPrefs.v1'
 
+/** The pack's out-of-the-box visibility (opt-in vendor packs ship disabled). */
+function packDefaultEnabled(packId: string): boolean {
+  return PACKS.find((p) => p.id === packId)?.defaultEnabled ?? true
+}
+
 interface LibraryPrefsState {
-  disabledPacks: Set<string>
+  /** Explicit user choices, keyed by pack id. Absent → use the pack default. */
+  overrides: Record<string, boolean>
   togglePack: (packId: string) => void
   isEnabled: (packId: string) => boolean
 }
 
-function loadPrefs(): Set<string> {
+function loadOverrides(): Record<string, boolean> {
   try {
     const raw = localStorage.getItem(LIBRARY_PREFS_KEY)
-    if (!raw) return new Set()
-    const parsed = JSON.parse(raw) as { disabledPacks?: string[] }
-    return new Set(parsed.disabledPacks ?? [])
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as { overrides?: Record<string, boolean>; disabledPacks?: string[] }
+    if (parsed.overrides) return parsed.overrides
+    // Migrate the legacy { disabledPacks: [...] } shape to explicit overrides.
+    if (Array.isArray(parsed.disabledPacks)) {
+      return Object.fromEntries(parsed.disabledPacks.map((id) => [id, false]))
+    }
+    return {}
   } catch {
-    return new Set()
+    return {}
   }
 }
 
-function persistPrefs(disabled: Set<string>): void {
+function persistOverrides(overrides: Record<string, boolean>): void {
   try {
-    localStorage.setItem(LIBRARY_PREFS_KEY, JSON.stringify({ disabledPacks: Array.from(disabled) }))
+    localStorage.setItem(LIBRARY_PREFS_KEY, JSON.stringify({ overrides }))
   } catch {
     // quota / no storage — accept the silent failure
   }
 }
 
 export const useLibraryPrefs = create<LibraryPrefsState>((set, get) => ({
-  disabledPacks: typeof window !== 'undefined' ? loadPrefs() : new Set<string>(),
+  overrides: typeof window !== 'undefined' ? loadOverrides() : {},
   togglePack(packId) {
-    const next = new Set(get().disabledPacks)
-    if (next.has(packId)) next.delete(packId)
-    else next.add(packId)
-    persistPrefs(next)
-    set({ disabledPacks: next })
+    const next = { ...get().overrides, [packId]: !get().isEnabled(packId) }
+    persistOverrides(next)
+    set({ overrides: next })
   },
   isEnabled(packId) {
-    return !get().disabledPacks.has(packId)
+    const o = get().overrides
+    return packId in o ? o[packId] : packDefaultEnabled(packId)
   },
 }))

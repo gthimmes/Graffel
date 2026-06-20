@@ -67,6 +67,43 @@ test('clicking a palette shape adds the right node id to the store', async ({ pa
   expect(nodeType).toBe('arch-core:server')
 })
 
+test('AWS is an opt-in pack: hidden by default, appears once enabled, and inserts with aws: ids', async ({ page }) => {
+  // Off by default — searching for an AWS service finds nothing yet.
+  await page.getByTestId('palette-search').fill('lambda')
+  await expect(page.getByTestId('palette-shape-aws-lambda')).toHaveCount(0)
+  await page.getByTestId('palette-search').fill('')
+
+  // Enable it in the Library Manager.
+  await page.getByTestId('palette-manage-libraries').click()
+  await page.getByTestId('library-toggle-aws').click()
+  await page.getByTestId('library-manager-close').click()
+
+  // Now it's searchable…
+  await page.getByTestId('palette-search').fill('lambda')
+  const lambda = page.getByTestId('palette-shape-aws-lambda')
+  await expect(lambda).toBeVisible()
+  await expect(lambda.locator('svg')).toHaveCount(1)
+  // …and inserting it stores the namespaced type.
+  await lambda.click()
+  const nodeType = await page.evaluate(() => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { nodes: { type: string }[] } } } }
+    return w.__graffel.useDiagramStore.getState().nodes[0]?.type
+  })
+  expect(nodeType).toBe('aws:lambda')
+})
+
+test('enabling the AWS pack persists across reload', async ({ page }) => {
+  await page.getByTestId('palette-manage-libraries').click()
+  await page.getByTestId('library-toggle-aws').click()
+  await page.getByTestId('library-manager-close').click()
+  await page.getByTestId('palette-search').fill('s3')
+  await expect(page.getByTestId('palette-shape-aws-s3')).toBeVisible()
+
+  await page.reload()
+  await page.getByTestId('palette-search').fill('s3')
+  await expect(page.getByTestId('palette-shape-aws-s3')).toBeVisible()
+})
+
 test.describe('connector context menu', () => {
   async function rightClickEdge(page: import('@playwright/test').Page, edgeId = 'e_1') {
     // Wait for the edge to actually render before dispatching the contextmenu event.

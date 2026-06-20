@@ -69,6 +69,10 @@ v3.1–v3.4 (now reverted) shipped per-vendor stylized icons (AWS, GCP, Azure, K
 
 **Off-ramp:** If a customer ever asks for the actual vendor icon sets, we add a separate "Official Vendor Icons" plugin pack. The `Pack` interface doesn't change.
 
+**Off-ramp taken (v3.21): opt-in AWS pack.** Architects coming from draw.io expect AWS icons, so we add an **AWS** pack as the off-ramp above — but as an *opt-in* pack that ships **disabled** (`defaultEnabled: false`). This keeps the v3.5 policy intact for the default experience (the out-of-the-box palette stays vendor-neutral; no vendor brand is implied) while letting users who want AWS turn it on in the Library Manager. The icons remain self-authored stylized approximations in AWS's category-color tile idiom (not the official marks), consistent with the license stance below. The concept overlap the v3.5 policy warned about (EC2≈VM, S3≈Object Storage) is accepted *because the pack is opt-in and visually distinct* (filled category tiles vs. the Cloud pack's outline glyphs); the "no duplicated icons" rule still governs the default-enabled packs.
+
+This also made `Pack.defaultEnabled` load-bearing for the first time: library prefs now resolve a pack's visibility as `explicit user override ?? pack.defaultEnabled` (was previously "enabled unless in a disabled list", which ignored `defaultEnabled`). Legacy `{ disabledPacks: [...] }` prefs migrate to the new `{ overrides: {...} }` shape on load.
+
 ### Palette UX
 
 - Top: search input that filters across all enabled packs (matches `label` + `keywords`).

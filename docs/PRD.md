@@ -133,6 +133,7 @@ A single-page web app. Center is an infinite, pannable, zoomable canvas. Left ed
 - **Shipped:** v3.5 Vendor-neutral Cloud pack (16 industry-standard concepts); Arch Core de-vendor pass.
 - **Shipped:** v3.6 UML pack — 12 UML 2.x primitives.
 - **Shipped:** v3.7 Flowchart & User Flow pack — 16 shapes.
+- **Shipped:** v3.21 AWS pack — 24 common services as opt-in, category-colored stylized tiles (EC2, Lambda, S3, RDS, DynamoDB, VPC, CloudFront, SQS, IAM, …). Ships disabled per ADR-0010's vendor off-ramp; `Pack.defaultEnabled` is now honored by library prefs.
 - **Shipped:** v3.8 Connector polish — line styles (dashed/dotted), endpoint markers (8 styles × 3 sizes), silhouette-anchored handles.
 - **Shipped:** v3.9 Alignment guides + snap-to-shape + opt-in 8 px grid snap. See [ADR-0011](./adr/0011-alignment-snapping.md).
 - **Shipped:** v3.9.1 Equal-spacing snap — gap-equalizer with double-tick indicators between row/column-aligned neighbors.

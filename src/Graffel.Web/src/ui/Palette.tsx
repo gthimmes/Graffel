@@ -19,17 +19,19 @@ export function Palette() {
   const [collapsedPacks, setCollapsedPacks] = useState<Set<string>>(() => new Set())
   const [libManagerOpen, setLibManagerOpen] = useState(false)
 
+  const overrides = useLibraryPrefs((s) => s.overrides)
   const visiblePacks = useMemo(
     () => PACKS.filter((p) => isEnabled(p.id)),
     // re-evaluate when prefs change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [PACKS, useLibraryPrefs((s) => s.disabledPacks)],
+    [PACKS, overrides],
   )
 
   const trimmedQuery = query.trim()
   const searchResults = useMemo(
     () => (trimmedQuery ? searchShapes(trimmedQuery).filter((sh) => isEnabled(sh.packId)) : null),
-    [trimmedQuery, isEnabled],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trimmedQuery, isEnabled, overrides],
   )
 
   function spawnAtCenter(shape: ShapeDef) {
