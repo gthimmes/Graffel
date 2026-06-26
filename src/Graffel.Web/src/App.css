@@ -516,6 +516,27 @@ html, body, #root {
 .graffel-dialog-btn:hover { background: var(--color-surface-hover, rgba(148, 163, 184, 0.12)); }
 .graffel-dialog-btn.is-primary { background: var(--color-accent, #2563eb); border-color: var(--color-accent, #2563eb); color: #fff; }
 .graffel-dialog-btn.is-primary.is-danger { background: #dc2626; border-color: #dc2626; }
+.graffel-dialog-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Mermaid interop dialog (v3.24) */
+.graffel-mermaid-dialog { max-width: min(92vw, 560px); }
+.graffel-mermaid-text {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 220px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-surface-sunken, rgba(148, 163, 184, 0.08));
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  resize: vertical;
+  white-space: pre;
+}
+.graffel-mermaid-text:focus { outline: 2px solid var(--color-accent, #2563eb); outline-offset: -1px; }
 
 /* Documents library modal */
 .graffel-documents { width: min(92vw, 460px); display: flex; flex-direction: column; max-height: 70vh; }

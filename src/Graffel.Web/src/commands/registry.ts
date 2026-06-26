@@ -10,6 +10,7 @@ import { copyPngToClipboard, exportPng, exportSvg } from '../export/exportImage'
 import { importDocument, newDocument } from '../store/documents'
 import { useDialogStore } from '../ui/dialogStore'
 import { useDocumentsStore } from '../ui/DocumentsDialog'
+import { useMermaidStore } from '../ui/mermaidStore'
 import { tidyUpCurrentLevel } from '../canvas/tidyUp'
 
 export interface Command {
@@ -78,6 +79,8 @@ export const COMMANDS: Command[] = [
   // File
   { id: 'file-new', group: 'File', label: 'New diagram', keywords: ['clear', 'blank'], run: () => newDocument() },
   { id: 'documents-open', group: 'File', label: 'Documents…', keywords: ['library', 'files', 'switch', 'recent'], run: () => useDocumentsStore.getState().open() },
+  { id: 'mermaid-import', group: 'File', label: 'Import from Mermaid…', keywords: ['mermaid', 'markdown', 'text', 'flowchart', 'paste'], run: () => useMermaidStore.getState().openImport() },
+  { id: 'mermaid-export', group: 'File', label: 'Export to Mermaid…', keywords: ['mermaid', 'markdown', 'text', 'flowchart', 'code'], run: () => useMermaidStore.getState().openExport() },
   { id: 'file-download', group: 'File', label: 'Download .graffel', keywords: ['save', 'export', 'json'],
     run: () => {
       const doc = useDiagramStore.getState().toDocument()

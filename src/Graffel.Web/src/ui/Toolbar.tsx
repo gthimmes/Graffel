@@ -17,6 +17,7 @@ import { importDocument, newDocument } from '../store/documents'
 import { useDialogStore } from './dialogStore'
 import { useDocumentsStore } from './DocumentsDialog'
 import { useTourUiStore } from './tourUiStore'
+import { useMermaidStore } from './mermaidStore'
 
 function downloadBlob(name: string, mime: string, data: string | Blob) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mime })
@@ -180,6 +181,12 @@ export function Toolbar() {
       <button type="button" onClick={onNew} data-testid="action-new">New</button>
       <button type="button" onClick={() => useDocumentsStore.getState().open()} data-testid="action-documents">Documents</button>
       <button type="button" onClick={onOpenClick} data-testid="action-open">Open…</button>
+      <button
+        type="button"
+        onClick={() => useMermaidStore.getState().openImport()}
+        title="Import a Mermaid flowchart as a new diagram"
+        data-testid="action-mermaid"
+      >⇄ Mermaid</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>
       <button

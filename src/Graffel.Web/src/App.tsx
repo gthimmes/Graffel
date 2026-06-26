@@ -7,6 +7,7 @@ import { Inspector } from './ui/Inspector'
 import { CommandPalette } from './ui/CommandPalette'
 import { AppDialogs } from './ui/AppDialogs'
 import { DocumentsDialog } from './ui/DocumentsDialog'
+import { MermaidDialog } from './ui/MermaidDialog'
 import { ShareView } from './share/ShareView'
 import { TourPanel } from './ui/TourPanel'
 import { Presenter } from './ui/Presenter'
@@ -40,6 +41,7 @@ export default function App() {
         </div>
         <CommandPalette />
         <DocumentsDialog />
+        <MermaidDialog />
         <AppDialogs />
         <Presenter />
       </div>
