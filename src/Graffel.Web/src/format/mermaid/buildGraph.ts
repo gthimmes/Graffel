@@ -16,6 +16,7 @@ const SHAPE_ID: Record<MermaidShape, string> = {
   diamond: 'basic:diamond',
   circle: 'basic:ellipse',
   cylinder: 'arch-core:database',
+  subgraph: 'basic:group',
 }
 
 export function buildGraph(graph: MermaidGraph): { nodes: GraffelNode[]; edges: GraffelEdge[] } {
@@ -25,7 +26,7 @@ export function buildGraph(graph: MermaidGraph): { nodes: GraffelNode[]; edges: 
     return {
       id: m.id,
       type,
-      parentId: null,
+      parentId: m.parentId,
       position: { x: 0, y: 0 },
       size: { ...size },
       data: { label: m.label },

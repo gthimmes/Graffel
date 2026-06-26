@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { toMermaid } from './toMermaid'
 import type { GraffelEdge, GraffelNode } from '../types'
 
-function node(id: string, type: string, label: string): GraffelNode {
-  return { id, type, parentId: null, position: { x: 0, y: 0 }, size: { w: 160, h: 80 }, data: { label } }
+function node(id: string, type: string, label: string, parentId: string | null = null): GraffelNode {
+  return { id, type, parentId, position: { x: 0, y: 0 }, size: { w: 160, h: 80 }, data: { label } }
 }
 function edge(id: string, source: string, target: string, label = ''): GraffelEdge {
   return { id, source, target, sourceHandle: 'right', targetHandle: 'left', type: 'orthogonal', data: { label } }
@@ -50,6 +50,46 @@ describe('toMermaid', () => {
 
   it('falls back to the alias when a node has no label', () => {
     expect(toMermaid([node('a', 'basic:rectangle', '')], [])).toContain('N0["N0"]')
+  })
+
+  it('emits a container as a subgraph block wrapping its children', () => {
+    const nodes = [
+      node('box', 'basic:group', 'Backend'),
+      node('api', 'basic:rectangle', 'API', 'box'),
+      node('db', 'arch-core:database', 'DB', 'box'),
+      node('web', 'basic:rectangle', 'Web'),
+    ]
+    const out = toMermaid(nodes, [edge('e1', 'web', 'api')])
+    expect(out).toContain('subgraph N0["Backend"]')
+    expect(out).toContain('end')
+    // Children are emitted inside, indented under the subgraph.
+    expect(out).toMatch(/subgraph N0\["Backend"\]\n {4}N1\["API"\]\n {4}N2\[\("DB"\)\]\n {2}end/)
+    // The cross-boundary edge still renders.
+    expect(out).toContain('N3 --> N1')
+  })
+
+  it('exports only the chosen level as top-level via rootParentId', () => {
+    const nodes = [node('api', 'basic:rectangle', 'API', 'box'), node('db', 'arch-core:database', 'DB', 'box')]
+    const out = toMermaid(nodes, [], { rootParentId: 'box' })
+    // With box itself excluded, its children become the top level (no subgraph).
+    expect(out).toContain('N0["API"]')
+    expect(out).not.toContain('subgraph')
+  })
+
+  it('round-trips a nested architecture through the parser', async () => {
+    const { parseMermaid } = await import('./parseMermaid')
+    const nodes = [
+      node('box', 'basic:group', 'Backend'),
+      node('api', 'basic:rectangle', 'API', 'box'),
+      node('db', 'arch-core:database', 'DB', 'box'),
+      node('web', 'basic:rectangle', 'Web'),
+    ]
+    const round = parseMermaid(toMermaid(nodes, [edge('e1', 'web', 'api')]))
+    const byLabel = Object.fromEntries(round.nodes.map((n) => [n.label, n]))
+    expect(byLabel['Backend'].shape).toBe('subgraph')
+    expect(byLabel['API'].parentId).toBe(byLabel['Backend'].id)
+    expect(byLabel['DB'].parentId).toBe(byLabel['Backend'].id)
+    expect(byLabel['Web'].parentId).toBeNull()
   })
 
   it('round-trips back through the parser', async () => {

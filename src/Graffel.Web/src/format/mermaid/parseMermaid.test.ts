@@ -35,9 +35,9 @@ describe('parseMermaid — nodes & edges', () => {
     expect(g.edges).toEqual([{ source: 'A', target: 'B', label: '' }])
   })
 
-  it('defaults a bare node label to its id and shape to rect', () => {
+  it('defaults a bare node label to its id, shape to rect, parent to null', () => {
     const g = parseMermaid('graph TD\nA --> B')
-    expect(g.nodes[0]).toEqual({ id: 'A', label: 'A', shape: 'rect' })
+    expect(g.nodes[0]).toEqual({ id: 'A', label: 'A', shape: 'rect', parentId: null })
   })
 
   it('parses every common shape wrapper', () => {
@@ -111,13 +111,53 @@ describe('parseMermaid — noise tolerance', () => {
     expect(g.edges).toHaveLength(1)
   })
 
-  it('flattens subgraph blocks for v1 (keeps the nodes, drops the grouping)', () => {
+})
+
+describe('parseMermaid — subgraphs → containers', () => {
+  it('emits a container node for a subgraph and parents its members to it', () => {
     const g = parseMermaid(`graph TD
       subgraph Cluster
         A --> B
       end
       B --> C`)
-    expect(g.nodes.map((n) => n.id)).toEqual(['A', 'B', 'C'])
-    expect(g.edges).toHaveLength(2)
+    const cluster = g.nodes.find((n) => n.id === 'Cluster')
+    expect(cluster).toMatchObject({ shape: 'subgraph', label: 'Cluster', parentId: null })
+    expect(g.nodes.find((n) => n.id === 'A')!.parentId).toBe('Cluster')
+    expect(g.nodes.find((n) => n.id === 'B')!.parentId).toBe('Cluster')
+    // C is declared outside the block.
+    expect(g.nodes.find((n) => n.id === 'C')!.parentId).toBeNull()
+    // The cross-boundary edge B --> C survives.
+    expect(g.edges).toContainEqual({ source: 'B', target: 'C', label: '' })
+  })
+
+  it('reads a bracketed subgraph title and keeps the id separate', () => {
+    const g = parseMermaid(`graph TD
+      subgraph be[Backend Services]
+        API --> DB
+      end`)
+    const sg = g.nodes.find((n) => n.id === 'be')
+    expect(sg).toMatchObject({ shape: 'subgraph', label: 'Backend Services' })
+    expect(g.nodes.find((n) => n.id === 'API')!.parentId).toBe('be')
+  })
+
+  it('nests subgraphs within subgraphs', () => {
+    const g = parseMermaid(`graph TD
+      subgraph Outer
+        subgraph Inner
+          A
+        end
+      end`)
+    expect(g.nodes.find((n) => n.id === 'Inner')!.parentId).toBe('Outer')
+    expect(g.nodes.find((n) => n.id === 'A')!.parentId).toBe('Inner')
+    expect(g.nodes.find((n) => n.id === 'Outer')!.parentId).toBeNull()
+  })
+
+  it('keeps container order before its members (parents first)', () => {
+    const g = parseMermaid(`graph TD
+      subgraph Cluster
+        A --> B
+      end`)
+    const order = g.nodes.map((n) => n.id)
+    expect(order.indexOf('Cluster')).toBeLessThan(order.indexOf('A'))
   })
 })

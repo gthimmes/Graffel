@@ -53,6 +53,98 @@ export function elkPositions(graph: ElkNode): Record<string, { x: number; y: num
   return out
 }
 
+// ── Nested (hierarchical) layout ─────────────────────────────────────────────
+// Used by Mermaid import when subgraphs map to drill-down containers. ELK lays
+// out the whole tree at once: leaf nodes get positions, container nodes get a
+// computed size + their children positioned *relative to the container* — which
+// is exactly how we store child positions (see canvas/nesting.ts), so the result
+// maps back with no coordinate conversion.
+
+export interface NestedLayoutNode {
+  id: string
+  size: { w: number; h: number }
+  parentId: string | null
+  isContainer?: boolean
+}
+
+/** Build a hierarchical ELK graph from a flat list with parent links. Pure. */
+export function buildNestedElkGraph(
+  nodes: NestedLayoutNode[],
+  edges: LayoutEdge[],
+  opts: LayoutOpts = {},
+): ElkNode {
+  const o = { ...DEFAULTS, ...opts }
+  const layered = {
+    'elk.algorithm': 'layered',
+    'elk.direction': o.direction,
+    'elk.spacing.nodeNode': String(o.nodeSpacing),
+    'elk.layered.spacing.nodeNodeBetweenLayers': String(o.layerSpacing),
+  }
+
+  const elkById = new Map<string, ElkNode>()
+  for (const n of nodes) {
+    elkById.set(
+      n.id,
+      n.isContainer
+        // Leave room at the top for the container's label.
+        ? { id: n.id, layoutOptions: { ...layered, 'elk.padding': '[top=34,left=14,bottom=14,right=14]' }, children: [] }
+        : { id: n.id, width: n.size.w, height: n.size.h },
+    )
+  }
+
+  const top: ElkNode[] = []
+  for (const n of nodes) {
+    const node = elkById.get(n.id)!
+    const parent = n.parentId ? elkById.get(n.parentId) : undefined
+    if (parent) (parent.children ??= []).push(node)
+    else top.push(node)
+  }
+
+  const ids = new Set(nodes.map((n) => n.id))
+  return {
+    id: 'root',
+    layoutOptions: { ...layered, 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' },
+    children: top,
+    edges: edges
+      .filter((e) => ids.has(e.source) && ids.has(e.target))
+      .map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
+  }
+}
+
+/** Walk a laid-out nested graph: positions for every node, sizes for containers. Pure. */
+export function elkNestedResult(graph: ElkNode): {
+  positions: Record<string, { x: number; y: number }>
+  sizes: Record<string, { w: number; h: number }>
+} {
+  const positions: Record<string, { x: number; y: number }> = {}
+  const sizes: Record<string, { w: number; h: number }> = {}
+  const walk = (parent: ElkNode) => {
+    for (const c of parent.children ?? []) {
+      if (typeof c.x === 'number' && typeof c.y === 'number') positions[c.id] = { x: c.x, y: c.y }
+      if (c.children && c.children.length > 0) {
+        if (typeof c.width === 'number' && typeof c.height === 'number') {
+          sizes[c.id] = { w: c.width, h: c.height }
+        }
+        walk(c)
+      }
+    }
+  }
+  walk(graph)
+  return { positions, sizes }
+}
+
+/** Run hierarchical ELK; return parent-relative positions + computed container sizes. */
+export async function layoutNested(
+  nodes: NestedLayoutNode[],
+  edges: LayoutEdge[],
+  opts: LayoutOpts = {},
+): Promise<{ positions: Record<string, { x: number; y: number }>; sizes: Record<string, { w: number; h: number }> }> {
+  if (nodes.length === 0) return { positions: {}, sizes: {} }
+  const elk = await getElk()
+  const result = await elk.layout(buildNestedElkGraph(nodes, edges, opts))
+  return elkNestedResult(result)
+}
+
 // ELK is ~1.4MB — load it lazily on first use so it splits into its own chunk
 // instead of bloating the initial bundle.
 let elkPromise: Promise<ElkInstance> | null = null

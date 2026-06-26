@@ -104,10 +104,44 @@ is a wider shell and a monospace text area.
 
 ## Deferred (fast-follows)
 
-- **`subgraph` ↔ container** — import nested subgraphs as drill-down containers and
-  export containers as subgraphs. The headline depth-interop slice.
+- ~~**`subgraph` ↔ container**~~ — shipped v3.25 (see "Update" below).
 - **More dialects** — at least sequence diagrams (architects use them constantly).
 - **Frontmatter title** — read `---\ntitle: …\n---` into the document title.
+
+## Update (v3.25) — `subgraph` ↔ drill-down container
+
+The headline depth-interop slice: nested architectures now round-trip. A Mermaid
+`subgraph` imports as a Graffel **container** (`basic:group`) with its members
+parented inside; a container exports back as a `subgraph` block. So a diagram with
+depth survives a Graffel → Mermaid → Graffel trip with its hierarchy intact.
+
+**Parsing.** `parseMermaid` keeps a stack of enclosing subgraph ids. On
+`subgraph id[Title]` it emits a container node (`shape: 'subgraph'`, parented to
+the enclosing subgraph) and pushes; on `end` it pops. Every node/edge declared
+inside is parented to the stack top. Nesting falls out for free; first-seen wins
+keeps a node in the subgraph where it first appears. Each `MermaidNode` now carries
+`parentId`.
+
+**Layout — native ELK hierarchy, not per-level passes.** The interesting decision.
+Rather than lay out each level separately and hand-size containers (the "per-level
+pass" the original ADR feared), we hand the whole tree to ELK at once
+(`layoutNested` / `buildNestedElkGraph` in `canvas/autoLayout.ts`, with
+`elk.hierarchyHandling: INCLUDE_CHILDREN`). ELK positions leaves, **computes each
+container's size to fit its members**, and returns child coordinates *relative to
+their parent* — which is precisely how Graffel stores child positions (ADR-0012),
+so the result maps back with **zero coordinate conversion**. Container padding
+leaves room for the top label. Flat imports are just the degenerate (no-container)
+case of the same call, so import always uses it.
+
+**Export.** `toMermaid` groups nodes by `parentId` and recurses: a node that
+parents others becomes a `subgraph … end` block; leaves become node lines.
+`exportCurrentLevelMermaid` now serializes the **whole subtree** under the viewed
+level (via `descendantIds`), with `rootParentId` deciding what counts as
+top-level — so exporting from root emits the full nested structure, while exporting
+while drilled-in emits just that subtree flat.
+
+The store path is unchanged: imports are ordinary nested documents, so drill-down,
+presenter, and `.graffel` export all work on them with no special-casing.
 
 ## Implementation notes
 

@@ -30,7 +30,7 @@ describe('exportCurrentLevelMermaid', () => {
     expect(out).toContain('-->')
   })
 
-  it('exports only the level currently in view (drill-down respected)', () => {
+  it('exports the full hierarchy from root, containers as subgraphs', () => {
     load(
       [
         node('box', 'basic:group', 'Box'),
@@ -39,14 +39,27 @@ describe('exportCurrentLevelMermaid', () => {
       ],
       [],
     )
-    // At root: see Box + Top, not Inner.
-    expect(exportCurrentLevelMermaid()).toContain('"Box"')
-    expect(exportCurrentLevelMermaid()).toContain('"Top"')
-    expect(exportCurrentLevelMermaid()).not.toContain('"Inner"')
-    // Drill into Box: see Inner only.
+    const out = exportCurrentLevelMermaid()
+    expect(out).toContain('subgraph')
+    expect(out).toContain('"Box"')
+    expect(out).toContain('"Inner"') // nested inside the Box subgraph
+    expect(out).toContain('"Top"')
+  })
+
+  it('exports just the subtree when drilled into a container', () => {
+    load(
+      [
+        node('box', 'basic:group', 'Box'),
+        node('inner', 'basic:rectangle', 'Inner', 'box'),
+        node('top', 'basic:rectangle', 'Top'),
+      ],
+      [],
+    )
     useDiagramStore.setState({ viewRootId: 'box' })
     const inside = exportCurrentLevelMermaid()
+    // Box's child is now top-level (no enclosing subgraph), Top is excluded.
     expect(inside).toContain('"Inner"')
+    expect(inside).not.toContain('subgraph')
     expect(inside).not.toContain('"Top"')
   })
 })

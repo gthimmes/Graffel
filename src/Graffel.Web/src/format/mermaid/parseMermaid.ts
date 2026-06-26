@@ -8,12 +8,14 @@
 // — see ADR-0014). The result is a flat, semantic graph; sizing, shape-id mapping
 // and layout happen downstream in buildGraph / importMermaid.
 
-export type MermaidShape = 'rect' | 'round' | 'stadium' | 'diamond' | 'circle' | 'cylinder'
+export type MermaidShape = 'rect' | 'round' | 'stadium' | 'diamond' | 'circle' | 'cylinder' | 'subgraph'
 
 export interface MermaidNode {
   id: string
   label: string
   shape: MermaidShape
+  /** Enclosing subgraph id, or null for the top level. */
+  parentId: string | null
 }
 
 export interface MermaidEdge {
@@ -37,6 +39,9 @@ const NODE_RE =
 const LINK_RE = /^(-{2,3}>|-{2,3}|-\.->|-\.-|={2,3}>|={2,3}|--[xo])\s*(?:\|([^|]*)\|\s*)?/
 
 const DIRECTIVE_RE = /^(style|classDef|class|linkStyle|click|direction)\b/
+const SUBGRAPH_RE = /^subgraph\b\s*(.*)$/i
+// A subgraph header: an id with an optional bracketed title, or free-text.
+const SUBGRAPH_HEAD_RE = /^([A-Za-z0-9_]+)\s*(\[.*\]|\(.*\)|\{.*\})?\s*$/
 
 /** Resolve a Mermaid shape wrapper to our shape kind + inner label. */
 function readWrapper(wrapper: string | undefined, id: string): { shape: MermaidShape; label: string } {
@@ -77,6 +82,11 @@ export function parseMermaid(text: string): MermaidGraph {
 
   const nodeMap = new Map<string, MermaidNode>()
   const edges: MermaidEdge[] = []
+  // Stack of enclosing subgraph ids; the top is the current parent.
+  const stack: string[] = []
+  let synthCount = 0
+
+  const currentParent = () => (stack.length > 0 ? stack[stack.length - 1] : null)
 
   function register(id: string, wrapper: string | undefined): string {
     const existing = nodeMap.get(id)
@@ -90,14 +100,42 @@ export function parseMermaid(text: string): MermaidGraph {
       return id
     }
     const { shape, label } = readWrapper(wrapper, id)
-    nodeMap.set(id, { id, label, shape })
+    nodeMap.set(id, { id, label, shape, parentId: currentParent() })
     return id
   }
 
   for (const line of lines.slice(1)) {
     if (DIRECTIVE_RE.test(line)) continue
-    // Subgraph framing is dropped in v1; the body lines are parsed flat.
-    if (/^subgraph\b/i.test(line) || /^end\b/i.test(line)) continue
+
+    if (/^end\b/i.test(line)) {
+      stack.pop()
+      continue
+    }
+
+    const sub = SUBGRAPH_RE.exec(line)
+    if (sub) {
+      const rest = sub[1].trim()
+      const head = SUBGRAPH_HEAD_RE.exec(rest)
+      let id: string
+      let label: string
+      if (head && head[2]) {
+        id = head[1]
+        label = readWrapper(head[2], head[1]).label
+      } else if (head) {
+        id = head[1]
+        label = head[1]
+      } else {
+        // A title with spaces and no explicit id — synthesize a stable id.
+        id = `__sg${synthCount++}`
+        label = rest.replace(/^"(.*)"$/s, '$1')
+      }
+      // The container itself is parented to the enclosing subgraph (if any).
+      if (!nodeMap.has(id)) {
+        nodeMap.set(id, { id, label, shape: 'subgraph', parentId: currentParent() })
+      }
+      stack.push(id)
+      continue
+    }
 
     let s = normalizeInlineLabels(line)
     const first = NODE_RE.exec(s)

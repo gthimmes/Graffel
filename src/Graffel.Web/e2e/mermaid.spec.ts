@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 // v3.24 — Mermaid interop. Paste a flowchart and it opens as a laid-out diagram;
 // the current level exports back to Mermaid text.
 
-interface NodeState { id: string; type: string; data: { label: string }; position: { x: number; y: number } }
+interface NodeState { id: string; type: string; parentId: string | null; data: { label: string }; position: { x: number; y: number } }
 
 function nodes(page: Page) {
   return page.evaluate(() => {
@@ -62,6 +62,68 @@ test('a malformed source surfaces an error and keeps the dialog open', async ({ 
   await page.getByTestId('dialog-dismiss').click()
   // Still on the import dialog so the user can fix the text.
   await expect(page.getByTestId('mermaid-dialog')).toBeVisible()
+})
+
+const NESTED = `graph TD
+  subgraph Backend[Backend Services]
+    API{Auth?} --> DB[(Database)]
+  end
+  Web[Web App] --> API`
+
+test('a subgraph imports as a drillable container holding its members', async ({ page }) => {
+  await freshApp(page)
+  await page.getByTestId('action-mermaid').click()
+  await page.getByTestId('mermaid-input').fill(NESTED)
+  await page.getByTestId('mermaid-import-run').click()
+  await expect.poll(async () => (await nodes(page)).nodes.length, { timeout: 10000 }).toBe(4)
+
+  const { nodes: ns } = await nodes(page)
+  const byLabel = Object.fromEntries(ns.map((n) => [n.data.label, n]))
+  const backend = byLabel['Backend Services']
+  expect(backend.type).toBe('basic:group')
+  // API and DB are parented to the container; Web is top-level.
+  expect(byLabel['Auth?'].parentId).toBe(backend.id)
+  expect(byLabel['Database'].parentId).toBe(backend.id)
+  expect(byLabel['Web App'].parentId).toBeNull()
+
+  // The container is sized to actually hold its members (not the 240×160 default).
+  const big = await page.evaluate((id) => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { nodes: NodeState[] } } } }
+    const n = w.__graffel.useDiagramStore.getState().nodes.find((x) => x.id === id) as unknown as { size: { w: number; h: number } }
+    return n.size
+  }, backend.id)
+  expect(big.w).toBeGreaterThan(0)
+
+  // Drilling into it shows its members as the current level.
+  await page.evaluate((id) => {
+    const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { enterContainer: (id: string) => void } } } }
+    w.__graffel.useDiagramStore.getState().enterContainer(id)
+  }, backend.id)
+  await expect.poll(async () => {
+    const v = await page.evaluate(() => {
+      const w = window as unknown as { __graffel: { useDiagramStore: { getState: () => { viewRootId: string | null } } } }
+      return w.__graffel.useDiagramStore.getState().viewRootId
+    })
+    return v
+  }).toBe(backend.id)
+})
+
+test('exporting a nested diagram emits subgraph blocks', async ({ page }) => {
+  await freshApp(page)
+  await page.getByTestId('action-mermaid').click()
+  await page.getByTestId('mermaid-input').fill(NESTED)
+  await page.getByTestId('mermaid-import-run').click()
+  await expect.poll(async () => (await nodes(page)).nodes.length, { timeout: 10000 }).toBe(4)
+
+  await page.keyboard.press('/')
+  await expect(page.getByTestId('command-palette')).toBeVisible()
+  await page.getByTestId('palette-input').fill('Export to Mermaid')
+  await page.keyboard.press('Enter')
+
+  const text = await page.getByTestId('mermaid-output').inputValue()
+  expect(text).toContain('subgraph')
+  expect(text).toContain('"Backend Services"')
+  expect(text).toContain('end')
 })
 
 test('exporting produces Mermaid for the current diagram', async ({ page }) => {
