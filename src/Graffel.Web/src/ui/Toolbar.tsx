@@ -16,6 +16,7 @@ import { exportPng, exportSvg } from '../export/exportImage'
 import { importDocument, newDocument } from '../store/documents'
 import { useDialogStore } from './dialogStore'
 import { useDocumentsStore } from './DocumentsDialog'
+import { useTourUiStore } from './tourUiStore'
 
 function downloadBlob(name: string, mime: string, data: string | Blob) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mime })
@@ -43,6 +44,8 @@ export function Toolbar() {
   const setSnapGrid = useDiagramStore((s) => s.setSnapGrid)
   const tool = useToolStore((s) => s.tool)
   const setTool = useToolStore((s) => s.setTool)
+  const tourPanelOpen = useTourUiStore((s) => s.panelOpen)
+  const toggleTourPanel = useTourUiStore((s) => s.togglePanel)
   const themePref = useThemeStore((s) => s.pref)
   const toggleTheme = useThemeStore((s) => s.toggle)
   const isDark = resolvePref(themePref) === 'dark'
@@ -158,6 +161,14 @@ export function Toolbar() {
         title="Tidy up — auto-arrange the shapes at this level"
         data-testid="action-tidy-up"
       >✨ Tidy up</button>
+      <button
+        type="button"
+        onClick={toggleTourPanel}
+        title="Walkthrough — author a guided tour and present it"
+        aria-pressed={tourPanelOpen}
+        data-testid="action-tour"
+        className={tourPanelOpen ? 'toolbar-toggle on' : 'toolbar-toggle'}
+      >🎬 Present</button>
       <button
         type="button"
         onClick={toggleTheme}

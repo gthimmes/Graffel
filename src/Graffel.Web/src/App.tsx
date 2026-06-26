@@ -8,6 +8,8 @@ import { CommandPalette } from './ui/CommandPalette'
 import { AppDialogs } from './ui/AppDialogs'
 import { DocumentsDialog } from './ui/DocumentsDialog'
 import { ShareView } from './share/ShareView'
+import { TourPanel } from './ui/TourPanel'
+import { Presenter } from './ui/Presenter'
 import { useApplyTheme } from './ui/themeStore'
 import './App.css'
 
@@ -34,10 +36,12 @@ export default function App() {
           <Palette />
           <DiagramCanvas />
           <Inspector />
+          <TourPanel />
         </div>
         <CommandPalette />
         <DocumentsDialog />
         <AppDialogs />
+        <Presenter />
       </div>
     </ReactFlowProvider>
   )

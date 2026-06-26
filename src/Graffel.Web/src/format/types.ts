@@ -56,6 +56,25 @@ export interface GraffelEdge {
   }
 }
 
+/**
+ * v3.23 — a single walkthrough "stop": a saved camera/level + selection + note,
+ * stepped through in presenter mode. `viewRootId` is the drill-down level (a
+ * container id, or null for the root); `selectedNodeIds` are the shapes to frame
+ * and highlight when the stop is shown.
+ */
+export interface TourStop {
+  id: string
+  title: string
+  note: string
+  viewRootId: string | null
+  selectedNodeIds: string[]
+}
+
+/** An ordered walkthrough authored on top of a diagram. */
+export interface Presentation {
+  stops: TourStop[]
+}
+
 export interface GraffelDocument {
   format: 'graffel'
   schemaVersion: number
@@ -69,6 +88,11 @@ export interface GraffelDocument {
   viewport: { x: number; y: number; zoom: number }
   nodes: GraffelNode[]
   edges: GraffelEdge[]
+  /**
+   * Optional walkthrough. Absent on diagrams without a tour; an additive field,
+   * so older files (and the schemaVersion 1 loader) keep working unchanged.
+   */
+  presentation?: Presentation
   reserved: {
     remote: unknown
     ops: unknown

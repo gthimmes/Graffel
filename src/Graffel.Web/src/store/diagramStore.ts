@@ -9,7 +9,9 @@ import type {
   GraffelEdge,
   GraffelNode,
   HandleSide,
+  TourStop,
 } from '../format/types'
+import { clampIndex, defaultStopTitle, moveStop, resolveStop } from '../canvas/tour'
 import { allShapeIds, getShape, resolveIsContainer } from '../shapes/registry'
 import { absolutePosition, absoluteRect, descendantIds, indexNodes } from '../canvas/nesting'
 import { isClipboardFragment, materializeFragment, type ClipboardFragment } from '../canvas/clipboard'
@@ -47,6 +49,13 @@ interface DiagramState {
   /** v3.14 drill-down: the container whose interior the canvas is showing (null = root). */
   viewRootId: string | null
 
+  /** v3.23 walkthrough: authored presenter stops (ordered). */
+  tourStops: TourStop[]
+  /** True while the full-screen presenter is running. */
+  presenting: boolean
+  /** Index of the stop currently shown in the presenter. */
+  presentIndex: number
+
   // History (private — _underscored to mark internal state)
   _past: HistorySnapshot[]
   _future: HistorySnapshot[]
@@ -81,6 +90,20 @@ interface DiagramState {
   exitToLevel: (id: string | null) => void
   /** Navigate to the level that contains a node and select it (e.g. from a boundary stub). */
   revealNode: (id: string) => void
+  /** Capture the current level + selection as a new walkthrough stop; returns its id ('' if read-only). */
+  addTourStop: () => string
+  removeTourStop: (id: string) => void
+  updateTourStop: (id: string, patch: { title?: string; note?: string }) => void
+  /** Reorder a stop by direction (-1 earlier, +1 later). */
+  moveTourStop: (id: string, dir: -1 | 1) => void
+  /** Enter presenter mode at the first stop (no-op if there are no stops). */
+  startPresenting: () => void
+  /** Leave presenter mode. */
+  stopPresenting: () => void
+  /** Jump the presenter to a stop index (clamped) and apply its level + selection. */
+  gotoStop: (index: number) => void
+  nextStop: () => void
+  prevStop: () => void
   /** Collapse/expand a container's contents at its parent level (persisted, undoable). */
   toggleCollapsed: (id: string) => void
   /** Paste a clipboard fragment at a position in the current level; returns new node ids. */
@@ -133,6 +156,7 @@ function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
   | 'documentId' | 'title' | 'driveFileId' | 'readOnly' | 'snapGrid'
   | 'editingNodeId' | 'editSeed' | 'viewRootId'
+  | 'tourStops' | 'presenting' | 'presentIndex'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
 > {
   const doc = createEmptyDocument()
@@ -149,6 +173,9 @@ function emptyState(): Pick<DiagramState,
     editingNodeId: null,
     editSeed: null,
     viewRootId: null,
+    tourStops: [],
+    presenting: false,
+    presentIndex: 0,
     _past: [],
     _future: [],
     _lastCoalesceKey: null,
@@ -593,6 +620,74 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       set({ viewRootId: node.parentId ?? null, selectedNodeIds: [id], selectedEdgeIds: [] })
     },
 
+    addTourStop() {
+      if (get().readOnly) return ''
+      const s = get()
+      const id = `t_${ulid()}`
+      const stop: TourStop = {
+        id,
+        title: defaultStopTitle(s.tourStops.length),
+        note: '',
+        viewRootId: s.viewRootId,
+        selectedNodeIds: [...s.selectedNodeIds],
+      }
+      set({ tourStops: [...s.tourStops, stop] })
+      return id
+    },
+
+    removeTourStop(id) {
+      if (get().readOnly) return
+      set((s) => ({ tourStops: s.tourStops.filter((t) => t.id !== id) }))
+    },
+
+    updateTourStop(id, patch) {
+      if (get().readOnly) return
+      set((s) => ({
+        tourStops: s.tourStops.map((t) =>
+          t.id === id
+            ? { ...t, ...(patch.title !== undefined ? { title: patch.title } : {}), ...(patch.note !== undefined ? { note: patch.note } : {}) }
+            : t,
+        ),
+      }))
+    },
+
+    moveTourStop(id, dir) {
+      if (get().readOnly) return
+      set((s) => ({ tourStops: moveStop(s.tourStops, id, dir) }))
+    },
+
+    startPresenting() {
+      const s = get()
+      if (s.tourStops.length === 0) return
+      // Presentation is navigation — allowed in read-only share views.
+      set({ presenting: true, presentIndex: 0 })
+      get().gotoStop(0)
+    },
+
+    stopPresenting() {
+      set({ presenting: false })
+    },
+
+    gotoStop(index) {
+      const s = get()
+      if (s.tourStops.length === 0) return
+      const i = clampIndex(index, s.tourStops.length)
+      const stop = s.tourStops[i]!
+      const present = new Set(s.nodes.map((n) => n.id))
+      const { viewRootId, selectedNodeIds } = resolveStop(stop, present)
+      set({
+        presentIndex: i,
+        viewRootId,
+        selectedNodeIds,
+        selectedEdgeIds: [],
+        editingNodeId: null,
+        editSeed: null,
+      })
+    },
+
+    nextStop() { get().gotoStop(get().presentIndex + 1) },
+    prevStop() { get().gotoStop(get().presentIndex - 1) },
+
     toggleCollapsed(id) {
       if (get().readOnly) return
       const node = get().nodes.find((n) => n.id === id)
@@ -764,6 +859,9 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       doc.metadata.updatedAt = new Date().toISOString()
       doc.nodes = s.nodes
       doc.edges = s.edges
+      // Only emit a presentation block when a walkthrough actually exists, so
+      // tour-free diagrams serialize unchanged.
+      if (s.tourStops.length > 0) doc.presentation = { stops: s.tourStops }
       // Persist Drive binding in the reserved.remote slot per ADR-0002.
       doc.reserved = {
         ...doc.reserved,
@@ -785,6 +883,9 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         editingNodeId: null,
         editSeed: null,
         viewRootId: null,
+        tourStops: doc.presentation?.stops ?? [],
+        presenting: false,
+        presentIndex: 0,
         _past: [],
         _future: [],
         _lastCoalesceKey: null,

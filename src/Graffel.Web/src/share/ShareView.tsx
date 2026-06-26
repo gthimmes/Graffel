@@ -6,6 +6,7 @@ import { useDiagramStore } from '../store/diagramStore'
 import { parseDocument } from '../format/graffelFile'
 import { parseLevelHash } from '../canvas/levelLink'
 import { resolveShare } from './shareClient'
+import { Presenter } from '../ui/Presenter'
 
 interface ShareViewProps {
   token: string
@@ -15,6 +16,8 @@ export function ShareView({ token }: ShareViewProps) {
   const loadDocument = useDiagramStore((s) => s.loadDocument)
   const setReadOnly = useDiagramStore((s) => s.setReadOnly)
   const title = useDiagramStore((s) => s.title)
+  const hasTour = useDiagramStore((s) => s.tourStops.length > 0)
+  const startPresenting = useDiagramStore((s) => s.startPresenting)
   const [state, setState] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading')
   const [errMsg, setErrMsg] = useState<string | null>(null)
 
@@ -74,12 +77,21 @@ export function ShareView({ token }: ShareViewProps) {
           <span className="brand">Graffel</span>
           <span className="share-view-title" data-testid="share-view-title">{title}</span>
           <span className="spacer" />
+          {hasTour ? (
+            <button
+              type="button"
+              className="share-view-present"
+              onClick={() => startPresenting()}
+              data-testid="share-present"
+            >▶ Present</button>
+          ) : null}
           <span className="share-view-badge">Viewing — read-only</span>
           <a href="/" className="share-view-open-app">Open Graffel</a>
         </header>
         <div className="graffel-body share-view-body">
           <DiagramCanvas />
         </div>
+        <Presenter />
       </div>
     </ReactFlowProvider>
   )

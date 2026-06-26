@@ -57,4 +57,7 @@ level stays readable.
 - ~~**Level-aware share URLs**~~ — shipped v3.17: `#l=<id>` hash deep-links
   (`canvas/levelLink.ts`), read on load in `DiagramCanvas`/`ShareView` and kept
   in sync via `replaceState`; breadcrumb "Link" button copies one.
-- **Presenter walkthrough:** guided path through levels for demos. Still deferred.
+- ~~**Presenter walkthrough**~~ — shipped v3.23: ordered stops (level + selection
+  + note) authored in a 🎬 Present panel and played full-screen; persisted with
+  the document and presentable read-only in share views. See
+  [ADR-0013](./0013-walkthrough-mode.md).
