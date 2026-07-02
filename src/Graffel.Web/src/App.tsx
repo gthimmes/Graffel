@@ -10,6 +10,7 @@ import { DocumentsDialog } from './ui/DocumentsDialog'
 import { MermaidDialog } from './ui/MermaidDialog'
 import { ShareView } from './share/ShareView'
 import { TourPanel } from './ui/TourPanel'
+import { HistoryPanel } from './ui/HistoryPanel'
 import { Presenter } from './ui/Presenter'
 import { useApplyTheme } from './ui/themeStore'
 import './App.css'
@@ -38,6 +39,7 @@ export default function App() {
           <DiagramCanvas />
           <Inspector />
           <TourPanel />
+          <HistoryPanel />
         </div>
         <CommandPalette />
         <DocumentsDialog />

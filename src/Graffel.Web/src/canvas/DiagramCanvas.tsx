@@ -20,6 +20,9 @@ import {
   saveSnapGrid,
   saveToLocalStorage,
 } from '../store/persistence'
+import { maybeAutoCheckpoint } from '../store/history'
+import { useSaveStatusStore } from '../ui/saveStatusStore'
+import { useHistoryUiStore } from '../ui/historyUiStore'
 import { isHandleSide, toReactFlowEdge, toReactFlowNode } from './adapters'
 import {
   absoluteRect,
@@ -292,6 +295,7 @@ export function DiagramCanvas() {
   // Brief content fade when changing levels, so the drill reads as moving between
   // levels rather than a jump cut. Cosmetic; disabled via prefers-reduced-motion.
   const [levelEntering, setLevelEntering] = useState(false)
+  const didAutosave = useRef(false)
   const didFirstLevel = useRef(false)
   useEffect(() => {
     if (!didFirstLevel.current) { didFirstLevel.current = true; return }
@@ -305,8 +309,19 @@ export function DiagramCanvas() {
   const tourStops = useDiagramStore((s) => s.tourStops)
   useEffect(() => {
     if (readOnly) return
+    // The initial mount reflects the just-loaded document, not a user edit —
+    // don't flip the indicator or drop a checkpoint for it.
+    const first = !didAutosave.current
+    didAutosave.current = true
+    if (!first) useSaveStatusStore.getState().markSaving()
     const t = window.setTimeout(() => {
-      saveToLocalStorage(toDocument())
+      const doc = toDocument()
+      saveToLocalStorage(doc)
+      if (!first) {
+        maybeAutoCheckpoint(doc.id, doc)
+        useHistoryUiStore.getState().bump()
+        useSaveStatusStore.getState().markSaved()
+      }
     }, 400)
     return () => window.clearTimeout(t)
   }, [nodes, edges, tourStops, toDocument, readOnly])

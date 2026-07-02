@@ -18,6 +18,8 @@ import { useDialogStore } from './dialogStore'
 import { useDocumentsStore } from './DocumentsDialog'
 import { useTourUiStore } from './tourUiStore'
 import { useMermaidStore } from './mermaidStore'
+import { useHistoryUiStore } from './historyUiStore'
+import { SaveStatus } from './SaveStatus'
 
 function downloadBlob(name: string, mime: string, data: string | Blob) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: mime })
@@ -47,6 +49,7 @@ export function Toolbar() {
   const setTool = useToolStore((s) => s.setTool)
   const tourPanelOpen = useTourUiStore((s) => s.panelOpen)
   const toggleTourPanel = useTourUiStore((s) => s.togglePanel)
+  const historyOpen = useHistoryUiStore((s) => s.open)
   const themePref = useThemeStore((s) => s.pref)
   const toggleTheme = useThemeStore((s) => s.toggle)
   const isDark = resolvePref(themePref) === 'dark'
@@ -114,6 +117,7 @@ export function Toolbar() {
         data-testid="title-input"
         aria-label="Diagram title"
       />
+      <SaveStatus />
       <span className="spacer" />
       <div className="tool-group" role="radiogroup" aria-label="Pointer tool">
         <button
@@ -170,6 +174,14 @@ export function Toolbar() {
         data-testid="action-tour"
         className={tourPanelOpen ? 'toolbar-toggle on' : 'toolbar-toggle'}
       >🎬 Present</button>
+      <button
+        type="button"
+        onClick={() => useHistoryUiStore.getState().togglePanel()}
+        title="Version history — snapshots you can restore"
+        aria-pressed={historyOpen}
+        data-testid="action-history"
+        className={historyOpen ? 'toolbar-toggle on' : 'toolbar-toggle'}
+      >🕘 History</button>
       <button
         type="button"
         onClick={toggleTheme}

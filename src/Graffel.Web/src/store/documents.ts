@@ -6,6 +6,7 @@ import {
   saveDocument,
   setCurrentId,
 } from './persistence'
+import { loadSnapshot, saveSnapshot } from './history'
 
 // v3.16 — document-level operations layered over the store + the library
 // persistence. These keep "New" non-destructive: the current diagram is always
@@ -39,6 +40,22 @@ export function importDocument(doc: GraffelDocument): void {
   saveCurrent()
   useDiagramStore.getState().loadDocument(doc)
   saveDocument(doc)
+}
+
+/**
+ * Restore a snapshot into the current document. The pre-restore state is first
+ * captured as its own checkpoint, so a restore is never destructive — you can
+ * restore back to where you were. No-op if the snapshot is missing/corrupt.
+ */
+export function restoreSnapshot(snapId: string): boolean {
+  const store = useDiagramStore.getState()
+  const docId = store.documentId
+  const snap = loadSnapshot(docId, snapId)
+  if (!snap) return false
+  saveSnapshot(docId, store.toDocument(), { kind: 'auto', label: 'Before restore' })
+  store.loadDocument(snap)
+  saveDocument(store.toDocument())
+  return true
 }
 
 /** Rename any document — the current one in-place, others without switching. */
