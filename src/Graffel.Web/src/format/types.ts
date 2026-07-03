@@ -75,6 +75,19 @@ export interface Presentation {
   stops: TourStop[]
 }
 
+/**
+ * v3.27 — provenance for a "living" diagram: where it was generated from, and the
+ * verbatim source text of the last import. Kept so a future re-sync (ADR-0016) can
+ * diff a freshly-generated graph against the current diagram and merge in place,
+ * preserving manual layout, instead of replacing it. Absent on hand-drawn diagrams.
+ */
+export interface DocumentSource {
+  kind: 'compose'
+  /** The source text as last imported, for re-sync/diff. */
+  text: string
+  importedAt: string
+}
+
 export interface GraffelDocument {
   format: 'graffel'
   schemaVersion: number
@@ -84,6 +97,8 @@ export interface GraffelDocument {
     createdAt: string
     updatedAt: string
     appVersion: string
+    /** Generator provenance for living diagrams; absent on hand-drawn ones. */
+    source?: DocumentSource
   }
   viewport: { x: number; y: number; zoom: number }
   nodes: GraffelNode[]

@@ -4,6 +4,7 @@ import {
   createEmptyDocument,
 } from '../format/graffelFile'
 import type {
+  DocumentSource,
   EdgeType,
   GraffelDocument,
   GraffelEdge,
@@ -36,6 +37,12 @@ interface DiagramState {
   selectedEdgeIds: string[]
   documentId: string
   title: string
+  /**
+   * v3.27 living-diagram provenance: where this diagram was generated from (e.g. a
+   * docker-compose file) and the source text of the last import. Carried through
+   * the store so it survives autosave (toDocument) and is available to re-sync.
+   */
+  documentSource: DocumentSource | null
   /** Drive file id this diagram is bound to, if it's been saved to Drive. */
   driveFileId: string | null
   /** When true (v2.2 shared view), mutating actions are silently no-op. */
@@ -154,7 +161,7 @@ interface DiagramState {
 
 function emptyState(): Pick<DiagramState,
   | 'nodes' | 'edges' | 'selectedNodeIds' | 'selectedEdgeIds'
-  | 'documentId' | 'title' | 'driveFileId' | 'readOnly' | 'snapGrid'
+  | 'documentId' | 'title' | 'documentSource' | 'driveFileId' | 'readOnly' | 'snapGrid'
   | 'editingNodeId' | 'editSeed' | 'viewRootId'
   | 'tourStops' | 'presenting' | 'presentIndex'
   | '_past' | '_future' | '_lastCoalesceKey' | '_lastCoalesceAt'
@@ -167,6 +174,7 @@ function emptyState(): Pick<DiagramState,
     selectedEdgeIds: [],
     documentId: doc.id,
     title: doc.metadata.title,
+    documentSource: null,
     driveFileId: null,
     readOnly: false,
     snapGrid: false,
@@ -857,6 +865,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
       doc.id = s.documentId
       doc.metadata.title = s.title
       doc.metadata.updatedAt = new Date().toISOString()
+      if (s.documentSource) doc.metadata.source = s.documentSource
       doc.nodes = s.nodes
       doc.edges = s.edges
       // Only emit a presentation block when a walkthrough actually exists, so
@@ -877,6 +886,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
         edges: doc.edges,
         documentId: doc.id,
         title: doc.metadata.title,
+        documentSource: doc.metadata.source ?? null,
         driveFileId: remote?.driveFileId ?? null,
         selectedNodeIds: [],
         selectedEdgeIds: [],

@@ -18,6 +18,7 @@ import { useDialogStore } from './dialogStore'
 import { useDocumentsStore } from './DocumentsDialog'
 import { useTourUiStore } from './tourUiStore'
 import { useMermaidStore } from './mermaidStore'
+import { useComposeStore } from './composeStore'
 import { useHistoryUiStore } from './historyUiStore'
 import { SaveStatus } from './SaveStatus'
 
@@ -199,6 +200,12 @@ export function Toolbar() {
         title="Import a Mermaid flowchart as a new diagram"
         data-testid="action-mermaid"
       >⇄ Mermaid</button>
+      <button
+        type="button"
+        onClick={() => useComposeStore.getState().openImport()}
+        title="Generate a diagram from a docker-compose file"
+        data-testid="action-compose"
+      >🐳 Compose</button>
       <button type="button" onClick={onDownload} data-testid="action-download">Download .graffel</button>
       <button type="button" onClick={onExportPng} data-testid="action-export-png">Export PNG</button>
       <button

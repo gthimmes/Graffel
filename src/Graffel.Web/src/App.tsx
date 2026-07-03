@@ -8,6 +8,7 @@ import { CommandPalette } from './ui/CommandPalette'
 import { AppDialogs } from './ui/AppDialogs'
 import { DocumentsDialog } from './ui/DocumentsDialog'
 import { MermaidDialog } from './ui/MermaidDialog'
+import { ComposeDialog } from './ui/ComposeDialog'
 import { ShareView } from './share/ShareView'
 import { TourPanel } from './ui/TourPanel'
 import { HistoryPanel } from './ui/HistoryPanel'
@@ -44,6 +45,7 @@ export default function App() {
         <CommandPalette />
         <DocumentsDialog />
         <MermaidDialog />
+        <ComposeDialog />
         <AppDialogs />
         <Presenter />
       </div>
