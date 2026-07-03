@@ -101,3 +101,53 @@ inventing a phantom node.
 - Dep: `yaml` (parser).
 - E2E: `e2e/compose.spec.ts` (compose → inferred shapes + `depends_on` edges + laid
   out + provenance recorded; malformed source surfaces an error, dialog stays open).
+
+## Update (v3.28) — slice 2: re-sync (the "doesn't rot" payoff)
+
+Re-importing an updated compose file now **merges into the existing diagram**
+instead of opening a new one — the point of living diagrams.
+
+### The merge is a pure function over stable ids
+
+`src/format/compose/syncCompose.ts` — `syncComposeGraph(existing, fresh)` →
+`{ nodes, edges, diff }`. Matching is by the slice-1 stable ids:
+
+- **Matched** (`compose:<svc>` in both): keep the user's `position`/`size`/`data`
+  (layout + styling) verbatim; adopt only the freshly-**inferred shape** (so an
+  image swap re-types the node). Reported `changed` if the shape moved, else
+  `unchanged`.
+- **Added** (in fresh only): staged in a row **below the existing bounding box** so
+  nothing is displaced — re-sync must never rearrange your diagram; new services
+  arrive somewhere obvious to wire in. (Deterministic placement, no ELK — full
+  re-layout is a Tidy-up away if wanted.)
+- **Removed** (compose id in existing, gone from fresh): dropped, with its edges.
+- **Hand-drawn** nodes/edges (ids without the `compose:`/`ce:` prefix) are **passed
+  through untouched** and never appear in the diff — your manual annotations are
+  safe. A final pass drops any edge (even manual) left dangling by a removal.
+
+Edges follow the same id match/add/remove, so manual waypoints on a surviving
+compose edge are preserved.
+
+### Applied as one undoable step; provenance advances
+
+The orchestrator `resyncComposeFromText` (impure) reads the live graph, computes the
+merge, and applies it via a new store action **`replaceGraph(nodes, edges)`** (a
+single `snapshot()` → the whole re-sync is one Ctrl-Z, `readOnly`-guarded). It then
+advances provenance (`setDocumentSource` with the new text) so the *next* re-sync
+diffs against the latest file, and persists. The dialog (mounted only while open, so
+each open is a fresh mount that pre-fills the stored source — sidestepping an
+effect-cascade that would wipe the summary) shows a **change report**:
+"+2 added · −1 removed · N unchanged · your layout was preserved".
+
+### Consequences
+
+- The headline promise is real: your compose diagram tracks the source of truth
+  without you redrawing it, and you can always see *what* changed.
+- Pure merge (6 unit tests) + undoable single-step apply; no schema change.
+- Trade-off: new nodes are staged, not intelligently re-laid-out among existing
+  ones (a deliberate "never move your stuff" choice). Networks/ports still unused.
+
+Files: `src/format/compose/syncCompose.ts` (+`.test.ts`); `resyncComposeFromText`
+in `importCompose.ts`; `replaceGraph`/`setDocumentSource` in `store/diagramStore.ts`;
+re-sync mode + summary in `ui/ComposeDialog.tsx` (conditionally mounted in
+`App.tsx`); `e2e/compose.spec.ts` (+2: merge-preserves-layout with undo; removal).

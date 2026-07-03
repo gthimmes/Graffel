@@ -9,8 +9,11 @@
 import { layoutNested } from '../../canvas/autoLayout'
 import { createEmptyDocument } from '../graffelFile'
 import { importDocument } from '../../store/documents'
+import { useDiagramStore } from '../../store/diagramStore'
+import { saveDocument } from '../../store/persistence'
 import { buildComposeGraph } from './buildComposeGraph'
 import { parseCompose } from './parseCompose'
+import { syncComposeGraph, type ComposeSyncDiff } from './syncCompose'
 
 /**
  * Parse a docker-compose file, infer shapes, lay it out with ELK, and open it as a
@@ -35,4 +38,24 @@ export async function importComposeText(text: string, now = new Date().toISOStri
   doc.nodes = placed
   doc.edges = edges
   importDocument(doc)
+}
+
+/**
+ * Re-sync the current (compose-sourced) diagram against an updated compose file:
+ * MERGE the freshly-generated graph into what's on the canvas — preserving manual
+ * layout/styling on services that still exist, staging new ones, dropping gone
+ * ones — instead of replacing the diagram. Undoable (one step). Returns the diff so
+ * the UI can tell the user what changed. Throws on an unusable compose file.
+ */
+export function resyncComposeFromText(text: string, now = new Date().toISOString()): ComposeSyncDiff {
+  const store = useDiagramStore.getState()
+  const fresh = buildComposeGraph(parseCompose(text))
+  if (fresh.nodes.length === 0) throw new Error('No services found in the compose file')
+
+  const { nodes, edges, diff } = syncComposeGraph({ nodes: store.nodes, edges: store.edges }, fresh)
+  store.replaceGraph(nodes, edges)
+  // Remember the new source so the next re-sync diffs against the latest file.
+  store.setDocumentSource({ kind: 'compose', text, importedAt: now })
+  saveDocument(useDiagramStore.getState().toDocument())
+  return diff
 }

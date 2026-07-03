@@ -538,6 +538,24 @@ html, body, #root {
 }
 .graffel-mermaid-text:focus { outline: 2px solid var(--color-accent, #2563eb); outline-offset: -1px; }
 
+/* docker-compose re-sync change report */
+.compose-sync-summary {
+  min-height: 120px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  color: var(--color-text);
+  background: var(--color-surface-sunken, rgba(148, 163, 184, 0.08));
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.compose-sync-summary ul { margin: 0; padding-left: 18px; }
+.compose-sync-summary li { margin: 2px 0; }
+.compose-sync-summary [data-testid="sync-added"] strong { color: var(--color-positive, #16a34a); }
+.compose-sync-summary [data-testid="sync-removed"] strong { color: var(--color-danger, #dc2626); }
+.compose-sync-unchanged { margin: 10px 0 0; opacity: 0.7; font-size: 12.5px; }
+
 /* Documents library modal */
 .graffel-documents { width: min(92vw, 460px); display: flex; flex-direction: column; max-height: 70vh; }
 .graffel-documents-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }

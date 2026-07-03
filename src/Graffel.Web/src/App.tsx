@@ -9,6 +9,7 @@ import { AppDialogs } from './ui/AppDialogs'
 import { DocumentsDialog } from './ui/DocumentsDialog'
 import { MermaidDialog } from './ui/MermaidDialog'
 import { ComposeDialog } from './ui/ComposeDialog'
+import { useComposeStore } from './ui/composeStore'
 import { ShareView } from './share/ShareView'
 import { TourPanel } from './ui/TourPanel'
 import { HistoryPanel } from './ui/HistoryPanel'
@@ -28,6 +29,8 @@ function getShareToken(): string | null {
 
 export default function App() {
   useApplyTheme()
+  // Mounted only while open so each open is a fresh mount (pre-fills re-sync source).
+  const composeOpen = useComposeStore((s) => s.open)
   const shareToken = getShareToken()
   if (shareToken) return <ShareView token={shareToken} />
 
@@ -45,7 +48,7 @@ export default function App() {
         <CommandPalette />
         <DocumentsDialog />
         <MermaidDialog />
-        <ComposeDialog />
+        {composeOpen && <ComposeDialog />}
         <AppDialogs />
         <Presenter />
       </div>

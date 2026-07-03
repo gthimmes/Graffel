@@ -73,6 +73,10 @@ interface DiagramState {
   updateNodePosition: (id: string, position: { x: number; y: number }) => void
   /** Apply a batch of new node positions (e.g. an auto-layout) as one undo step. */
   applyLayout: (positions: Record<string, { x: number; y: number }>) => void
+  /** Replace the whole graph in one undo step (e.g. a living-diagram re-sync). */
+  replaceGraph: (nodes: GraffelNode[], edges: GraffelEdge[]) => void
+  /** Set (or clear) the living-diagram provenance for the current document. */
+  setDocumentSource: (source: DocumentSource | null) => void
   /** Grow a container to keep its children inside (auto-grow on drag). No-op if it already fits. */
   growContainer: (id: string) => void
   updateNodeSize: (id: string, size: { w: number; h: number }) => void
@@ -262,6 +266,16 @@ export const useDiagramStore = create<DiagramState>((set, get) => {
           positions[n.id] ? { ...n, position: { ...positions[n.id]! } } : n,
         ),
       }))
+    },
+
+    replaceGraph(nodes, edges) {
+      if (get().readOnly) return
+      snapshot(null)
+      set({ nodes, edges, selectedNodeIds: [], selectedEdgeIds: [] })
+    },
+
+    setDocumentSource(source) {
+      set({ documentSource: source })
     },
 
     growContainer(id) {
