@@ -17,6 +17,7 @@
   "dependencies": {
     "@xyflow/react": "^12.10.2",
     "elkjs": "^0.11.1",
+    "help-navigator": "github:gthimmes/help-navigator",
     "html-to-image": "^1.11.13",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

@@ -15,6 +15,7 @@ import { TourPanel } from './ui/TourPanel'
 import { HistoryPanel } from './ui/HistoryPanel'
 import { Presenter } from './ui/Presenter'
 import { useApplyTheme } from './ui/themeStore'
+import { HelpWidget } from './ui/HelpWidget'
 import './App.css'
 
 const SHARE_PREFIX = '/v/'
@@ -32,7 +33,14 @@ export default function App() {
   // Mounted only while open so each open is a fresh mount (pre-fills re-sync source).
   const composeOpen = useComposeStore((s) => s.open)
   const shareToken = getShareToken()
-  if (shareToken) return <ShareView token={shareToken} />
+  if (shareToken) {
+    return (
+      <>
+        <ShareView token={shareToken} />
+        <HelpWidget />
+      </>
+    )
+  }
 
   return (
     <ReactFlowProvider>
@@ -51,6 +59,7 @@ export default function App() {
         {composeOpen && <ComposeDialog />}
         <AppDialogs />
         <Presenter />
+        <HelpWidget />
       </div>
     </ReactFlowProvider>
   )
